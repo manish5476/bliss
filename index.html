@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>APEX — Content Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ═══════════════ TOKENS ═══════════════ */
+:root{
+  --gold:#c9a84c; --gold-l:#e8c97a; --gold-d:#9a7830;
+  --radius:8px; --transition:0.2s cubic-bezier(.4,0,.2,1);
+  --sidebar-w:310px; --header-h:52px; --strip-h:82px;
+}
+[data-theme="dark"]{
+  --bg:#0c0c0e; --surface:#141418; --surface2:#1c1c22; --surface3:#242430;
+  --border:rgba(201,168,76,.18); --border2:rgba(255,255,255,.07);
+  --text:#f0ebe0; --text2:#8a8490; --text3:#4a4455;
+  --shadow:0 32px 80px rgba(0,0,0,.7); --glow:0 0 60px rgba(201,168,76,.07);
+  --input-bg:#111116;
+}
+[data-theme="light"]{
+  --bg:#ede9e0; --surface:#faf7f2; --surface2:#f0ece4; --surface3:#e4dfd5;
+  --border:rgba(160,120,48,.22); --border2:rgba(0,0,0,.08);
+  --text:#1a1510; --text2:#7a6e5e; --text3:#b0a898;
+  --shadow:0 32px 80px rgba(100,80,40,.18); --glow:0 0 40px rgba(160,120,48,.06);
+  --input-bg:#fff;
+}
+
+/* ═══════════════ RESET ═══════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Syne',sans-serif; background:var(--bg); color:var(--text);
+  overflow:hidden; transition:background var(--transition),color var(--transition);
+}
+
+/* ═══════════════ LAYOUT ═══════════════ */
+.app{
+  display:grid;
+  grid-template-rows:var(--header-h) 1fr;
+  grid-template-columns:var(--sidebar-w) 1fr;
+  grid-template-areas:"header header" "sidebar main";
+  height:100vh; height:100dvh;
+}
+
+/* ═══════════════ HEADER ═══════════════ */
+.header{
+  grid-area:header; background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 12px 0 16px; z-index:300; gap:8px;
+}
+.logo{display:flex;align-items:baseline;gap:8px;flex-shrink:0}
+.logo-name{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.25em;color:var(--gold);line-height:1}
+.logo-tag{font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.18em;color:var(--text3);text-transform:uppercase}
+
+/* ── Mode tabs (Image / Video) ── */
+.header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+
+.mode-tabs{display:flex;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:3px;gap:2px}
+.mode-tab{
+  font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 14px;border-radius:6px;cursor:pointer;color:var(--text2);
+  transition:all var(--transition);white-space:nowrap;border:none;background:transparent;
+  display:flex;align-items:center;gap:5px;user-select:none;
+}
+.mode-tab:hover{color:var(--gold)}
+.mode-tab.active{background:var(--gold);color:#000;font-weight:700}
+
+.format-tabs{display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:3px;gap:2px}
+.format-tab{
+  font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.07em;text-transform:uppercase;
+  padding:4px 8px;border-radius:6px;cursor:pointer;color:var(--text2);
+  transition:all var(--transition);white-space:nowrap;border:none;background:transparent;user-select:none;
+}
+.format-tab:hover{color:var(--gold)}
+.format-tab.active{background:var(--gold);color:#000;font-weight:700}
+
+.slide-pill{
+  display:flex;align-items:center;gap:4px;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:100px;padding:3px 3px 3px 10px;
+}
+.slide-pill span{font-size:.54rem;letter-spacing:.07em;color:var(--text2);font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.pill-btn{
+  width:24px;height:24px;background:var(--surface3);border:none;border-radius:50%;
+  color:var(--text);cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);flex-shrink:0;
+}
+.pill-btn:hover{background:var(--gold);color:#000}
+.pill-btn:disabled{opacity:.28;cursor:not-allowed}
+.pill-btn:disabled:hover{background:var(--surface3);color:var(--text)}
+
+.header-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn{
+  font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer;border:none;padding:6px 12px;
+  border-radius:var(--radius);display:inline-flex;align-items:center;gap:5px;
+  transition:all var(--transition);white-space:nowrap;user-select:none;
+}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-gold{background:var(--gold);color:#000;font-weight:700}
+.btn-gold:hover{background:var(--gold-l);transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,168,76,.35)}
+.btn-outline{background:transparent;border:1px solid var(--gold);color:var(--gold)}
+.btn-outline:hover{background:rgba(201,168,76,.08)}
+.btn-danger{background:transparent;border:1px solid rgba(200,60,60,.25);color:#c84040;font-size:.48rem}
+.btn-danger:hover{background:rgba(200,60,60,.08);border-color:rgba(200,60,60,.5)}
+.btn-sm{padding:5px 9px;font-size:.48rem}
+.btn-icon{width:28px;height:28px;padding:0;justify-content:center;font-size:.72rem;flex-shrink:0}
+
+/* ═══════════════ SIDEBAR ═══════════════ */
+.sidebar{
+  grid-area:sidebar;background:var(--surface);border-right:1px solid var(--border2);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.sidebar-scroll::-webkit-scrollbar{width:3px}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+.section{padding:12px 14px;border-bottom:1px solid var(--border2)}
+.section-label{
+  font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.26em;
+  color:var(--gold);text-transform:uppercase;margin-bottom:9px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.chip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.chip{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:6px;
+  padding:6px 3px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.41rem;
+  letter-spacing:.04em;color:var(--text2);text-align:center;transition:all var(--transition);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.chip .chip-swatch{width:18px;height:8px;border-radius:3px;flex-shrink:0}
+.chip:hover,.chip.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.05)}
+
+.add-row{display:flex;gap:6px}
+.add-row select{
+  flex:1;background:var(--input-bg);border:1px solid var(--border2);
+  color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.52rem;
+  padding:7px 26px 7px 9px;border-radius:var(--radius);outline:none;
+  appearance:none;cursor:pointer;transition:border-color var(--transition);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a8490' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;background-color:var(--input-bg);
+}
+.add-row select:focus{border-color:var(--gold)}
+.slide-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
+
+.field{margin-bottom:8px}
+.field label{
+  display:block;font-family:'IBM Plex Mono',monospace;font-size:.43rem;
+  letter-spacing:.17em;color:var(--text3);text-transform:uppercase;margin-bottom:4px;
+}
+.field input[type="text"],.field textarea{
+  width:100%;background:var(--input-bg);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;
+  font-size:.55rem;padding:7px 9px;outline:none;resize:vertical;
+  transition:border-color var(--transition);
+}
+.field input[type="text"]:focus,.field textarea:focus{border-color:var(--gold)}
+.field textarea{min-height:62px}
+
+/* Image upload */
+.img-upload-zone{
+  border:1.5px dashed var(--border);border-radius:8px;padding:11px;
+  text-align:center;cursor:pointer;transition:all var(--transition);
+  background:var(--input-bg);position:relative;overflow:hidden;
+}
+.img-upload-zone:hover{border-color:var(--gold);background:rgba(201,168,76,.03)}
+.img-upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.img-upload-zone .upload-icon{font-size:.95rem;opacity:.3;margin-bottom:3px}
+.img-upload-zone .upload-label{font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.09em;color:var(--text2);text-transform:uppercase}
+.img-upload-zone.has-img{border-style:solid;border-color:var(--gold);background:rgba(201,168,76,.04)}
+.img-upload-zone.has-img .upload-label{color:var(--gold)}
+
+/* Crop */
+.crop-controls{display:none;flex-direction:column;gap:6px;margin-top:7px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px}
+.crop-controls.visible{display:flex}
+.crop-row{display:flex;align-items:center;gap:7px}
+.crop-row label{font-family:'IBM Plex Mono',monospace;font-size:.41rem;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;width:36px;flex-shrink:0}
+.crop-row input[type="range"]{flex:1;height:3px;-webkit-appearance:none;background:var(--border2);border-radius:99px;outline:none;cursor:pointer}
+.crop-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;background:var(--gold);border-radius:50%;cursor:pointer;box-shadow:0 1px 5px rgba(201,168,76,.4)}
+.crop-val{font-family:'IBM Plex Mono',monospace;font-size:.41rem;color:var(--text2);width:30px;text-align:right;flex-shrink:0}
+.crop-btns{display:flex;gap:5px}
+.crop-reset-btn,.remove-img-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:.41rem;letter-spacing:.08em;
+  text-transform:uppercase;background:transparent;border:1px solid var(--border2);
+  color:var(--text3);border-radius:5px;padding:4px 7px;cursor:pointer;transition:all var(--transition);
+}
+.crop-reset-btn:hover{border-color:var(--gold);color:var(--gold)}
+.remove-img-btn{border-color:rgba(200,60,60,.22);color:#c84040}
+.remove-img-btn:hover{background:rgba(200,60,60,.08);border-color:rgba(200,60,60,.5)}
+
+/* Swatches */
+.swatch-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all var(--transition);position:relative;flex-shrink:0}
+.swatch.active{border-color:var(--text);transform:scale(1.18)}
+.swatch::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,.9);opacity:0;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.swatch.active::after{opacity:1}
+.custom-color-wrap{display:flex;align-items:center;gap:6px;margin-top:7px}
+.custom-color-wrap label{font-family:'IBM Plex Mono',monospace;font-size:.42rem;letter-spacing:.1em;color:var(--text3);text-transform:uppercase}
+input[type="color"]{width:24px;height:24px;border:1px solid var(--border2);border-radius:50%;padding:0;cursor:pointer;background:transparent;outline:none;appearance:none;-webkit-appearance:none;overflow:hidden}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0;border-radius:50%}
+input[type="color"]::-webkit-color-swatch{border:none;border-radius:50%}
+
+.range-field{display:flex;align-items:center;gap:10px}
+.range-field input[type="range"]{flex:1;height:3px;-webkit-appearance:none;background:var(--border2);border-radius:99px;outline:none;cursor:pointer}
+.range-field input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;background:var(--gold);border-radius:50%;cursor:pointer;box-shadow:0 2px 7px rgba(201,168,76,.4)}
+.range-val{font-family:'IBM Plex Mono',monospace;font-size:.5rem;color:var(--text2);width:26px;text-align:right}
+
+.sidebar-footer{padding:10px 14px;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border2);background:var(--surface)}
+.export-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+/* ═══════════════ VIDEO PANEL ═══════════════ */
+.video-panel{display:none;flex-direction:column;gap:0}
+.video-panel.active{display:flex}
+
+/* Video upload zone */
+.vid-upload-zone{
+  border:2px dashed var(--border);border-radius:10px;padding:22px 14px;
+  text-align:center;cursor:pointer;background:var(--input-bg);
+  position:relative;overflow:hidden;transition:all var(--transition);
+}
+.vid-upload-zone:hover{border-color:var(--gold);background:rgba(201,168,76,.03)}
+.vid-upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.vid-upload-zone .vid-icon{font-size:1.8rem;margin-bottom:7px;opacity:.35}
+.vid-upload-zone .vid-label{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.12em;color:var(--text2);text-transform:uppercase;line-height:1.6}
+.vid-upload-zone .vid-sub{font-family:'IBM Plex Mono',monospace;font-size:.4rem;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-top:4px}
+.vid-upload-zone.has-vid{border-style:solid;border-color:var(--gold);background:rgba(201,168,76,.04)}
+.vid-upload-zone.has-vid .vid-label{color:var(--gold)}
+
+/* Video editor controls */
+.vid-editor{display:none;flex-direction:column;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2)}
+.vid-editor.visible{display:flex}
+
+.vid-info{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+  padding:10px 12px;display:flex;justify-content:space-between;align-items:center;
+}
+.vid-info-label{font-family:'IBM Plex Mono',monospace;font-size:.42rem;letter-spacing:.14em;color:var(--text3);text-transform:uppercase;margin-bottom:2px}
+.vid-info-val{font-family:'IBM Plex Mono',monospace;font-size:.54rem;color:var(--gold)}
+
+/* Trim range */
+.trim-section{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px}
+.trim-label{font-family:'IBM Plex Mono',monospace;font-size:.42rem;letter-spacing:.16em;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+.trim-track{position:relative;height:36px;background:var(--surface3);border-radius:6px;overflow:hidden;cursor:pointer}
+.trim-waveform{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-around;padding:0 4px;pointer-events:none}
+.trim-bar{flex:1;background:rgba(201,168,76,.25);border-radius:2px;margin:0 1px;transition:height .05s}
+.trim-range{position:absolute;top:0;bottom:0;background:rgba(201,168,76,.18);border-left:2px solid var(--gold);border-right:2px solid var(--gold);pointer-events:none}
+.trim-handle{position:absolute;top:0;bottom:0;width:6px;background:var(--gold);cursor:ew-resize;border-radius:3px;z-index:5}
+.trim-handle.left{left:0}
+.trim-handle.right{right:0}
+.trim-times{display:flex;justify-content:space-between;margin-top:5px}
+.trim-time{font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:var(--text2)}
+
+/* Video text overlay controls */
+.vid-overlay-section{display:flex;flex-direction:column;gap:7px}
+
+/* Playback controls */
+.vid-playback{display:flex;align-items:center;gap:8px;padding:8px 0}
+.vid-play-btn{
+  width:36px;height:36px;background:var(--gold);border:none;border-radius:50%;
+  color:#000;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all var(--transition);
+}
+.vid-play-btn:hover{background:var(--gold-l);transform:scale(1.06)}
+.vid-progress-wrap{flex:1;position:relative;height:4px;background:var(--border2);border-radius:99px;cursor:pointer}
+.vid-progress-fill{height:100%;background:var(--gold);border-radius:99px;transition:width .1s linear}
+.vid-time-txt{font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:var(--text2);white-space:nowrap}
+
+/* Volume */
+.vid-vol-row{display:flex;align-items:center;gap:8px}
+.vid-vol-icon{font-size:.8rem;opacity:.5;flex-shrink:0}
+.vid-vol-slider{flex:1;height:3px;-webkit-appearance:none;background:var(--border2);border-radius:99px;outline:none;cursor:pointer}
+.vid-vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--gold);border-radius:50%;cursor:pointer}
+
+/* ═══════════════ MAIN ═══════════════ */
+.main{grid-area:main;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.preview-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden;position:relative}
+.preview-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(201,168,76,.04) 0%,transparent 70%);pointer-events:none}
+
+/* ═══════════════ CANVAS (IMAGE MODE) ═══════════════ */
+.ig-canvas{
+  position:relative;overflow:hidden;
+  box-shadow:var(--shadow),var(--glow);border-radius:12px;flex-shrink:0;
+  transition:width .35s cubic-bezier(.4,0,.2,1),height .35s cubic-bezier(.4,0,.2,1);
+}
+.ig-canvas[data-format="story"]    {width:270px;height:480px}
+.ig-canvas[data-format="square"]   {width:420px;height:420px}
+.ig-canvas[data-format="portrait"] {width:380px;height:475px}
+.ig-canvas[data-format="landscape"]{width:520px;height:293px}
+@media(min-height:700px){
+  .ig-canvas[data-format="story"]    {width:315px;height:560px}
+  .ig-canvas[data-format="square"]   {width:440px;height:440px}
+  .ig-canvas[data-format="portrait"] {width:400px;height:500px}
+  .ig-canvas[data-format="landscape"]{width:540px;height:304px}
+}
+@media(min-height:820px){
+  .ig-canvas[data-format="story"]    {width:360px;height:640px}
+  .ig-canvas[data-format="square"]   {width:480px;height:480px}
+  .ig-canvas[data-format="portrait"] {width:432px;height:540px}
+  .ig-canvas[data-format="landscape"]{width:576px;height:324px}
+}
+@media(max-height:580px){
+  .ig-canvas[data-format="story"]    {width:214px;height:380px}
+  .ig-canvas[data-format="square"]   {width:320px;height:320px}
+  .ig-canvas[data-format="portrait"] {width:280px;height:350px}
+  .ig-canvas[data-format="landscape"]{width:420px;height:236px}
+}
+.ig-canvas[data-template="dark-gold"] {background:#0a0a0a;color:#f0ebe0}
+.ig-canvas[data-template="light-warm"]{background:#faf5ec;color:#1a1510}
+.ig-canvas[data-template="obsidian"]  {background:#0d0d14;color:#e8e4f0}
+.ig-canvas[data-template="ivory"]     {background:#f5f0e4;color:#1c1814}
+.ig-canvas[data-template="slate"]     {background:#1a1f2e;color:#dce4f0}
+.ig-canvas[data-template="matte-rose"]{background:#1a1015;color:#f0e4e8}
+.ig-canvas[data-template="forest"]    {background:#0d140f;color:#dff0e4}
+.ig-canvas[data-template="midnight"]  {background:#080810;color:#e0e8ff}
+
+/* ═══════════════ VIDEO PREVIEW CANVAS ═══════════════ */
+.vid-canvas-wrap{
+  position:relative;overflow:hidden;
+  box-shadow:var(--shadow),var(--glow);border-radius:12px;flex-shrink:0;
+  background:#000;display:none;
+}
+.vid-canvas-wrap.active{display:block}
+.vid-canvas-wrap[data-format="story"]    {width:270px;height:480px}
+.vid-canvas-wrap[data-format="square"]   {width:420px;height:420px}
+.vid-canvas-wrap[data-format="portrait"] {width:380px;height:475px}
+.vid-canvas-wrap[data-format="landscape"]{width:520px;height:293px}
+@media(min-height:700px){
+  .vid-canvas-wrap[data-format="story"]    {width:315px;height:560px}
+  .vid-canvas-wrap[data-format="square"]   {width:440px;height:440px}
+  .vid-canvas-wrap[data-format="portrait"] {width:400px;height:500px}
+  .vid-canvas-wrap[data-format="landscape"]{width:540px;height:304px}
+}
+@media(min-height:820px){
+  .vid-canvas-wrap[data-format="story"]    {width:360px;height:640px}
+  .vid-canvas-wrap[data-format="square"]   {width:480px;height:480px}
+  .vid-canvas-wrap[data-format="portrait"] {width:432px;height:540px}
+  .vid-canvas-wrap[data-format="landscape"]{width:576px;height:324px}
+}
+@media(max-height:580px){
+  .vid-canvas-wrap[data-format="story"]    {width:214px;height:380px}
+  .vid-canvas-wrap[data-format="square"]   {width:320px;height:320px}
+  .vid-canvas-wrap[data-format="portrait"] {width:280px;height:350px}
+  .vid-canvas-wrap[data-format="landscape"]{width:420px;height:236px}
+}
+
+/* Video element fills the preview */
+.vid-canvas-wrap video{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+}
+
+/* Text overlay LIVE on video */
+.vid-overlay-ui{
+  position:absolute;inset:0;pointer-events:none;z-index:10;
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+.vid-text-layer{
+  padding:22px 20px 28px;
+  background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.0) 100%);
+}
+.vid-text-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.22em;
+  text-transform:uppercase;background:var(--gold);color:#000;display:inline-flex;
+  padding:3px 9px;border-radius:3px;margin-bottom:9px;font-weight:700;
+}
+.vid-text-title{
+  font-family:'DM Serif Display',serif;color:#fff;line-height:1.2;
+  text-shadow:0 2px 12px rgba(0,0,0,.6);margin-bottom:7px;
+}
+.vid-text-sub{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:rgba(255,255,255,.78);line-height:1.55;
+}
+.vid-brand-mark{
+  position:absolute;bottom:10px;right:14px;
+  font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.3em;
+  color:#fff;opacity:.2;z-index:11;pointer-events:none;
+}
+
+/* Video overlay position selector */
+.overlay-pos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:4px}
+.overlay-pos-btn{
+  height:28px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:5px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  font-size:.38rem;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;
+  transition:all var(--transition);display:flex;align-items:center;justify-content:center;
+}
+.overlay-pos-btn:hover,.overlay-pos-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.06)}
+
+/* Mute indicator */
+.vid-mute-badge{
+  position:absolute;top:10px;right:10px;z-index:12;
+  background:rgba(0,0,0,.6);border:1px solid rgba(201,168,76,.3);
+  border-radius:4px;padding:3px 8px;
+  font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.12em;
+  color:var(--gold);text-transform:uppercase;opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.vid-mute-badge.show{opacity:1}
+
+/* No-video placeholder */
+.vid-empty{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+}
+.vid-empty .ve-icon{font-size:2.4rem;opacity:.18}
+.vid-empty .ve-text{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.18em;color:var(--text3);text-transform:uppercase;text-align:center;line-height:1.7}
+
+/* ═══════════════ STRIP ═══════════════ */
+.slide-strip{
+  height:var(--strip-h);background:var(--surface);border-top:1px solid var(--border2);
+  display:flex;align-items:center;gap:6px;padding:0 12px;
+  overflow-x:auto;flex-shrink:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+.slide-strip::-webkit-scrollbar{height:3px}
+.slide-strip::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+.strip-thumb{
+  flex-shrink:0;width:42px;height:60px;border:1.5px solid var(--border2);
+  border-radius:5px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;
+  font-size:.44rem;color:var(--text3);transition:all var(--transition);
+  background:var(--surface2);gap:2px;user-select:none;position:relative;overflow:hidden;
+}
+.strip-thumb::before{content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);background:rgba(201,168,76,.14);border-radius:2px}
+.strip-thumb[data-format="story"]::before    {width:9px;height:16px}
+.strip-thumb[data-format="square"]::before   {width:13px;height:13px}
+.strip-thumb[data-format="portrait"]::before {width:11px;height:14px}
+.strip-thumb[data-format="landscape"]::before{width:16px;height:9px}
+.strip-thumb[data-format="video"]::before    {width:15px;height:10px;background:rgba(201,100,100,.25)}
+.strip-thumb:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
+.strip-thumb.active{border-color:var(--gold);border-width:2px;color:var(--gold)}
+.strip-thumb.is-video{background:rgba(120,0,0,.12)}
+.strip-thumb.is-video.active{border-color:#e06060}
+.strip-thumb .strip-num{font-size:.48rem;font-weight:700;margin-top:18px}
+.strip-thumb .strip-type{font-size:.34rem;opacity:.6;text-transform:uppercase}
+.strip-add{
+  flex-shrink:0;width:42px;height:60px;border:1.5px dashed var(--border);
+  border-radius:5px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:1rem;color:var(--text3);
+  transition:all var(--transition);gap:2px;
+}
+.strip-add span{font-family:'IBM Plex Mono',monospace;font-size:.34rem;letter-spacing:.05em;text-transform:uppercase;opacity:.5}
+.strip-add:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
+
+/* ═══════════════ CARD LAYOUTS ═══════════════ */
+.accent{color:var(--gold)}
+.brand-watermark{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.3em;opacity:.2;z-index:10;pointer-events:none}
+.card-layout{width:100%;height:100%;display:flex;flex-direction:column;padding:46px 24px 78px 24px;position:relative;z-index:2}
+
+.img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;color:rgba(201,168,76,.38);border:1px dashed rgba(201,168,76,.14);background:rgba(201,168,76,.02)}
+
+/* Story types — all same CSS as before */
+.story-hook{justify-content:center}
+.story-hook .badge{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.22em;text-transform:uppercase;border:1px solid currentColor;padding:3px 7px;opacity:.4;align-self:flex-start;margin-bottom:15px;border-radius:3px}
+.story-hook .hook-text{font-family:'DM Serif Display',serif;line-height:1.15;margin-bottom:13px}
+.story-hook .rule{width:28px;height:3px;background:var(--gold);margin-bottom:13px;border-radius:99px}
+.story-hook .sub-text{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.7;opacity:.57}
+.story-promo{justify-content:center;align-items:center;text-align:center}
+.story-promo .promo-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.story-promo .promo-title{font-family:'Bebas Neue',sans-serif;line-height:.92;letter-spacing:.04em;margin-bottom:16px;text-transform:uppercase}
+.story-promo .promo-price-box{border:1.5px solid var(--gold);padding:11px 18px;margin-bottom:14px;background:rgba(201,168,76,.04);border-radius:6px}
+.story-promo .promo-price{font-family:'DM Serif Display',serif;font-size:32px;color:var(--gold);line-height:1;margin-bottom:3px}
+.story-promo .promo-detail{font-family:'IBM Plex Mono',monospace;font-size:8px;opacity:.56;letter-spacing:.1em}
+.story-promo .promo-cta{font-family:'IBM Plex Mono',monospace;font-size:10px;background:var(--gold);color:#000;padding:10px 22px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;border-radius:4px}
+.story-media-bg{position:absolute;inset:0;z-index:0;overflow:hidden}
+.story-media-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(0,0,0,.6) 0%,rgba(0,0,0,.05) 40%,rgba(0,0,0,.88) 100%)}
+.story-media{justify-content:flex-end;padding-bottom:88px;color:#fff}
+.story-media .media-badge{background:var(--gold);color:#000;font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.2em;padding:3px 8px;text-transform:uppercase;align-self:flex-start;margin-bottom:9px;font-weight:700;border-radius:3px}
+.story-media .media-title{font-family:'DM Serif Display',serif;line-height:1.2;margin-bottom:8px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.story-media .media-desc{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.6;opacity:.86}
+.story-product-wrap{width:100%;height:100%;display:flex;flex-direction:column;position:relative}
+.story-product-img{height:52%;width:100%;position:relative;overflow:hidden}
+.story-product-card{flex:1;background:var(--surface);border-top:2px solid var(--gold);padding:15px 19px 70px 19px;display:flex;flex-direction:column}
+.story-product-card .p-title{font-family:'DM Serif Display',serif;font-size:18px;line-height:1.1;margin-bottom:3px}
+.story-product-card .p-price{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:.05em;margin-bottom:8px}
+.story-product-card .p-specs{font-family:'IBM Plex Mono',monospace;font-size:8px;line-height:1.9;opacity:.66;flex:1}
+.story-product-card .p-cta{background:var(--gold);color:#000;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;padding:8px 15px;text-transform:uppercase;letter-spacing:.11em;text-align:center;border-radius:4px;margin-top:8px}
+.story-review{justify-content:center;align-items:center;text-align:center}
+.story-review .stars{color:var(--gold);font-size:17px;letter-spacing:3px;margin-bottom:13px}
+.story-review .r-quote{font-family:'DM Serif Display',serif;font-style:italic;line-height:1.45;margin-bottom:19px}
+.story-review .r-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);margin-bottom:9px;flex-shrink:0}
+.story-review .r-name{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.1em}
+.story-review .r-role{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.7;margin-top:3px}
+.story-split-wrap{width:100%;height:100%;display:flex;flex-direction:column;position:relative}
+.split-half{flex:1;position:relative;overflow:hidden}
+.split-half img{width:100%;height:100%;object-fit:cover;opacity:.75;display:block}
+.split-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.74),transparent);display:flex;align-items:flex-end;padding:11px 15px}
+.split-text{color:#fff;font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:.08em;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.split-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);border:2px solid var(--gold);color:var(--gold);font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.2em;padding:6px 11px;z-index:10;text-transform:uppercase;white-space:nowrap;border-radius:4px}
+.story-expert{justify-content:center;align-items:center;text-align:center}
+.story-expert .e-img{width:78px;height:78px;border-radius:50%;margin-bottom:13px;overflow:hidden;border:3px solid rgba(201,168,76,.33);box-shadow:0 8px 24px rgba(0,0,0,.4);flex-shrink:0}
+.story-expert .e-name{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.1em;color:var(--gold)}
+.story-expert .e-title{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.17em;text-transform:uppercase;opacity:.46;margin-bottom:14px}
+.story-expert .e-quote{font-family:'DM Serif Display',serif;font-size:18px;line-height:1.4}
+.story-list{justify-content:center}
+.story-list .list-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:7px}
+.story-list .list-header{font-family:'DM Serif Display',serif;line-height:1.2;margin-bottom:14px}
+.story-list .list-items{display:flex;flex-direction:column;gap:10px}
+.story-list .list-item{display:flex;gap:9px;align-items:flex-start;border-bottom:1px dashed rgba(150,150,150,.11);padding-bottom:10px}
+.story-list .list-item:last-child{border-bottom:none;padding-bottom:0}
+.story-list .list-num{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);opacity:.6;line-height:1;min-width:19px}
+.story-list .list-text{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.5;opacity:.74}
+.story-compare{justify-content:center}
+.story-compare .compare-label{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.story-compare .compare-title{font-family:'DM Serif Display',serif;line-height:1.2;margin-bottom:14px}
+.story-compare .compare-cols{display:flex;flex-direction:column;gap:8px}
+.story-compare .col-avg,.story-compare .col-elite{padding:10px;border-radius:6px}
+.story-compare .col-avg{background:rgba(150,150,150,.04);border:1px solid var(--border2)}
+.story-compare .col-elite{background:rgba(201,168,76,.05);border-left:3px solid var(--gold);border-top:1px solid var(--border2);border-right:1px solid var(--border2);border-bottom:1px solid var(--border2)}
+.story-compare .col-label{font-family:'IBM Plex Mono',monospace;font-size:6.5px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-bottom:4px}
+.story-compare .col-text{font-family:'IBM Plex Mono',monospace;font-size:9.5px;line-height:1.65;opacity:.74}
+.story-compare .bottom-accent{margin-top:14px;font-family:'DM Serif Display',serif;font-style:italic;font-size:11px;opacity:.4;border-top:1px solid currentColor;padding-top:11px;line-height:1.5}
+.story-framework{justify-content:center}
+.story-framework .fw-title{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:9px}
+.story-framework .fw-heading{font-family:'DM Serif Display',serif;line-height:1.2;margin-bottom:18px}
+.story-framework .fw-steps{display:flex;flex-direction:column;gap:12px}
+.story-framework .fw-step{display:flex;gap:9px;align-items:flex-start}
+.story-framework .step-num{font-family:'Bebas Neue',sans-serif;font-size:21px;line-height:1;color:var(--gold);opacity:.6;min-width:23px}
+.story-framework .step-text{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.6;opacity:.68;padding-top:3px}
+.story-framework .fw-closing{margin-top:16px;border-top:1px solid currentColor;padding-top:11px;font-family:'DM Serif Display',serif;font-style:italic;font-size:11px;opacity:.37}
+.story-quote{justify-content:center;text-align:center}
+.story-quote .quote-mark{font-family:'DM Serif Display',serif;font-size:54px;color:var(--gold);line-height:1;margin-bottom:9px}
+.story-quote .quote-text{font-family:'DM Serif Display',serif;line-height:1.45;margin-bottom:18px}
+.story-quote .quote-author{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.17em;color:var(--gold);text-transform:uppercase}
+.story-closing{align-items:center;justify-content:center;text-align:center}
+.story-closing .closing-rule{width:1px;height:50px;background:currentColor;opacity:.14;margin-bottom:24px}
+.story-closing .closing-main{font-family:'DM Serif Display',serif;line-height:1.35;margin-bottom:24px}
+.story-closing .closing-rule2{width:1px;height:32px;background:currentColor;opacity:.14;margin-bottom:16px}
+.story-closing .closing-brand{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.4em;color:var(--gold);opacity:.68}
+.story-closing .closing-handle{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.17em;opacity:.34;margin-top:4px}
+.story-caption{justify-content:center}
+.story-caption .cap-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:14px}
+.story-caption .cap-text{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.85;opacity:.68}
+.story-caption .cap-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:18px}
+.story-caption .cap-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--gold);opacity:.68;border:1px solid currentColor;padding:3px 6px;border-radius:3px}
+
+/* Post types */
+.post-img-full{width:100%;height:100%;display:flex;flex-direction:column;position:relative}
+.post-img-full .pif-bg{position:absolute;inset:0;overflow:hidden}
+.post-img-full .pif-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 55%,transparent 100%)}
+.post-img-full .pif-content{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:26px 22px 18px}
+.post-img-full .pif-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:7px;opacity:.9}
+.post-img-full .pif-title{font-family:'DM Serif Display',serif;font-size:24px;line-height:1.15;color:#fff;margin-bottom:6px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.post-img-full .pif-sub{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:rgba(255,255,255,.76);line-height:1.5}
+.post-img-text{width:100%;height:100%;display:flex;flex-direction:row;position:relative}
+.post-img-text .pit-img{width:50%;height:100%;position:relative;overflow:hidden;flex-shrink:0}
+.post-img-text .pit-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 20px 20px 18px}
+.post-img-text .pit-tag{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:9px}
+.post-img-text .pit-title{font-family:'DM Serif Display',serif;font-size:19px;line-height:1.2;margin-bottom:9px}
+.post-img-text .pit-desc{font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.65;opacity:.66;margin-bottom:12px}
+.post-img-text .pit-cta{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;background:var(--gold);color:#000;padding:7px 13px;text-transform:uppercase;letter-spacing:.1em;border-radius:4px;align-self:flex-start}
+.post-text{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:34px 30px;position:relative}
+.post-text .pt-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:14px;opacity:.83}
+.post-text .pt-body{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.35;margin-bottom:18px}
+.post-text .pt-rule{width:38px;height:2px;background:var(--gold);border-radius:99px;margin:0 auto 14px}
+.post-text .pt-sub{font-family:'IBM Plex Mono',monospace;font-size:9.5px;line-height:1.7;opacity:.56;max-width:280px}
+.post-text .pt-handle{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.24em;color:var(--gold);opacity:.52;margin-top:18px}
+.post-quote{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px 26px;position:relative}
+.post-quote::before{content:'';position:absolute;inset:14px;border:1px solid var(--border);border-radius:6px;opacity:.38;pointer-events:none}
+.post-quote .pq-mark{font-family:'DM Serif Display',serif;font-size:74px;color:var(--gold);line-height:.7;margin-bottom:18px;opacity:.78}
+.post-quote .pq-text{font-family:'DM Serif Display',serif;font-size:21px;line-height:1.45;margin-bottom:22px;font-style:italic}
+.post-quote .pq-rule{width:34px;height:2px;background:var(--gold);border-radius:99px;margin:0 auto 14px}
+.post-quote .pq-author{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.post-quote .pq-role{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:.1em;opacity:.43;margin-top:4px}
+.post-compare{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:26px 22px;position:relative}
+.post-compare .pc-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.post-compare .pc-title{font-family:'DM Serif Display',serif;font-size:21px;line-height:1.2;margin-bottom:18px}
+.post-compare .pc-cols{display:flex;gap:10px;flex:1}
+.post-compare .pc-col{flex:1;display:flex;flex-direction:column;border-radius:8px;overflow:hidden}
+.post-compare .pc-col-head{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.15em;text-transform:uppercase;padding:7px 10px;font-weight:700}
+.post-compare .pc-col-head.avg{background:rgba(150,150,150,.1);color:var(--text2)}
+.post-compare .pc-col-head.elite{background:var(--gold);color:#000}
+.post-compare .pc-col-body{flex:1;padding:10px;border:1px solid var(--border2);border-top:none;border-radius:0 0 8px 8px}
+.post-compare .pc-col-body.avg{background:rgba(150,150,150,.03)}
+.post-compare .pc-col-body.elite{background:rgba(201,168,76,.04);border-color:rgba(201,168,76,.24)}
+.post-compare .pc-item{font-family:'IBM Plex Mono',monospace;font-size:8.5px;line-height:1.7;opacity:.7;display:flex;align-items:baseline;gap:4px}
+.post-compare .pc-item::before{content:'—';opacity:.33;flex-shrink:0}
+.post-compare .pc-item.good::before{content:'✓';color:var(--gold);opacity:1}
+.post-compare .pc-foot{margin-top:12px;font-family:'DM Serif Display',serif;font-style:italic;font-size:11px;opacity:.4;border-top:1px solid currentColor;padding-top:11px}
+.post-product{width:100%;height:100%;display:flex;flex-direction:row;position:relative}
+.post-product .pp-img{width:48%;height:100%;position:relative;overflow:hidden;flex-shrink:0}
+.post-product .pp-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 22px 20px 18px}
+.post-product .pp-badge{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.18em;text-transform:uppercase;background:var(--gold);color:#000;display:inline-flex;padding:3px 8px;border-radius:3px;margin-bottom:9px;font-weight:700;align-self:flex-start}
+.post-product .pp-title{font-family:'DM Serif Display',serif;font-size:18px;line-height:1.15;margin-bottom:5px}
+.post-product .pp-price{font-family:'Bebas Neue',sans-serif;font-size:21px;color:var(--gold);letter-spacing:.05em;margin-bottom:9px}
+.post-product .pp-specs{font-family:'IBM Plex Mono',monospace;font-size:8px;line-height:1.9;opacity:.62;flex:1}
+.post-product .pp-cta{background:var(--gold);color:#000;font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;padding:8px 13px;text-transform:uppercase;letter-spacing:.1em;text-align:center;border-radius:4px;margin-top:9px}
+.post-carousel{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:26px 26px;position:relative}
+.post-carousel .car-num{font-family:'Bebas Neue',sans-serif;font-size:60px;color:var(--gold);opacity:.09;line-height:1;margin-bottom:-7px}
+.post-carousel .car-rule{width:30px;height:3px;background:var(--gold);border-radius:99px;margin-bottom:12px}
+.post-carousel .car-title{font-family:'DM Serif Display',serif;font-size:24px;line-height:1.25;margin-bottom:12px}
+.post-carousel .car-body{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.75;opacity:.64}
+.post-carousel .car-foot{margin-top:20px;display:flex;align-items:center;justify-content:space-between}
+.post-carousel .car-brand{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.22em;color:var(--gold);opacity:.48}
+.post-carousel .car-dots{display:flex;gap:5px}
+.post-carousel .car-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.17}
+.post-carousel .car-dot.active{opacity:.58;background:var(--gold)}
+.post-stats{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:26px 24px;position:relative}
+.post-stats .ps-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.post-stats .ps-title{font-family:'DM Serif Display',serif;font-size:19px;line-height:1.2;margin-bottom:20px}
+.post-stats .ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.post-stats .ps-item{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:12px 11px}
+.post-stats .ps-val{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);line-height:1;letter-spacing:.02em}
+.post-stats .ps-label{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;opacity:.5;margin-top:2px}
+.post-stats .ps-sub{margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:9px;opacity:.46;line-height:1.6}
+.post-announce{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px;position:relative;overflow:hidden}
+.post-announce::before{content:'';position:absolute;width:280px;height:280px;border-radius:50%;border:1px solid var(--border);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.28}
+.post-announce::after{content:'';position:absolute;width:380px;height:380px;border-radius:50%;border:1px solid var(--border);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.13}
+.post-announce .pa-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:.28em;text-transform:uppercase;border:1px solid var(--gold);color:var(--gold);padding:4px 10px;border-radius:100px;margin-bottom:14px;opacity:.78;z-index:1}
+.post-announce .pa-title{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.06em;line-height:.92;text-transform:uppercase;margin-bottom:14px;z-index:1}
+.post-announce .pa-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.07em;opacity:.58;line-height:1.6;max-width:240px;z-index:1}
+.post-announce .pa-date{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--gold);letter-spacing:.2em;margin-top:18px;z-index:1;opacity:.68}
+
+/* ═══════════════ MOBILE ═══════════════ */
+.mobile-toggle{
+  display:none;position:fixed;bottom:calc(var(--strip-h) + 12px);right:12px;z-index:500;
+  background:var(--gold);color:#000;border:none;border-radius:100px;padding:9px 16px;
+  font-family:'IBM Plex Mono',monospace;font-size:.5rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+  box-shadow:0 4px 18px rgba(201,168,76,.44);transition:all var(--transition);
+}
+.mobile-toggle:hover{background:var(--gold-l);transform:translateY(-1px)}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;backdrop-filter:blur(2px)}
+
+/* ═══════════════ OVERLAYS ═══════════════ */
+.loading-overlay{position:fixed;inset:0;background:rgba(10,10,14,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)}
+.loading-overlay.active{display:flex}
+.loading-spinner{width:34px;height:34px;border:2px solid rgba(201,168,76,.16);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+.loading-prog{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;margin-top:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.08em;padding:8px 12px;z-index:9999;border-radius:8px;transform:translateY(60px);opacity:0;transition:all .28s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:7px;max-width:280px;box-shadow:0 8px 26px rgba(0,0,0,.3)}
+.toast::before{content:'✓';color:var(--gold);font-weight:bold;flex-shrink:0}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error::before{content:'✕';color:#c84040}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:900px){
+  :root{--sidebar-w:0px}
+  .app{grid-template-columns:1fr;grid-template-areas:"header" "main"}
+  .sidebar{position:fixed;left:0;top:var(--header-h);bottom:0;width:min(310px,88vw);z-index:450;transform:translateX(-110%);box-shadow:4px 0 26px rgba(0,0,0,.4)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-backdrop.visible{display:block}
+  .mobile-toggle{display:flex}
+  .logo-tag{display:none}
+  .format-tabs{gap:1px}
+  .format-tab{padding:4px 6px;font-size:.4rem}
+}
+@media(max-width:540px){
+  .header-actions .btn-outline{display:none}
+  .preview-wrap{padding:10px}
+  .mode-tab{padding:4px 10px;font-size:.45rem}
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-prog" id="loading-text">Preparing...</div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="sidebar-backdrop" id="backdrop" onclick="closeSidebar()"></div>
+<button class="mobile-toggle" id="mobile-toggle-btn" onclick="toggleSidebar()">✦ Edit</button>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-name">APEX</span>
+      <span class="logo-tag">Content Studio</span>
+    </div>
+
+    <div class="header-center">
+      <!-- Image / Video mode -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="mode-img-btn" onclick="setMode('image',this)">🖼 Image</button>
+        <button class="mode-tab" id="mode-vid-btn" onclick="setMode('video',this)">🎬 Video</button>
+      </div>
+      <!-- Format (hidden in video) -->
+      <div class="format-tabs" id="format-tabs">
+        <button class="format-tab active" onclick="setFormat('story',this)">Story 9:16</button>
+        <button class="format-tab" onclick="setFormat('square',this)">Square 1:1</button>
+        <button class="format-tab" onclick="setFormat('portrait',this)">Portrait 4:5</button>
+        <button class="format-tab" onclick="setFormat('landscape',this)">Land 16:9</button>
+      </div>
+      <!-- Nav -->
+      <div class="slide-pill">
+        <span id="slide-counter">1 / 1</span>
+        <button class="pill-btn" id="prev-btn" onclick="prevSlide()">‹</button>
+        <button class="pill-btn" id="next-btn" onclick="nextSlide()">›</button>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-icon" id="theme-btn" onclick="toggleAppTheme()" title="Theme">☀</button>
+      <button class="btn btn-ghost btn-icon" onclick="undoAction()" id="undo-btn" title="Undo">↩</button>
+      <button class="btn btn-ghost btn-icon" onclick="redoAction()" id="redo-btn" title="Redo">↪</button>
+      <button class="btn btn-outline btn-sm" onclick="downloadAllSlides()">⬇ ZIP</button>
+      <button class="btn btn-gold btn-sm" onclick="downloadCurrentSlide()">⬇ Export</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- IMAGE MODE PANEL -->
+      <div id="img-panel">
+        <div class="section">
+          <div class="section-label">Theme</div>
+          <div class="chip-grid">
+            <div class="chip active" onclick="setTemplate('dark-gold',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#0a0a0a 50%,#c9a84c 50%)"></div>Dark</div>
+            <div class="chip" onclick="setTemplate('light-warm',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#faf5ec 50%,#a07830 50%)"></div>Warm</div>
+            <div class="chip" onclick="setTemplate('obsidian',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#0d0d14 50%,#a078dc 50%)"></div>Obsid</div>
+            <div class="chip" onclick="setTemplate('ivory',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#f5f0e4 50%,#b03030 50%)"></div>Ivory</div>
+            <div class="chip" onclick="setTemplate('slate',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#1a1f2e 50%,#50a0dc 50%)"></div>Slate</div>
+            <div class="chip" onclick="setTemplate('matte-rose',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#1a1015 50%,#e080a0 50%)"></div>Rose</div>
+            <div class="chip" onclick="setTemplate('forest',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#0d140f 50%,#60c878 50%)"></div>Forest</div>
+            <div class="chip" onclick="setTemplate('midnight',this)"><div class="chip-swatch" style="background:linear-gradient(135deg,#080810 50%,#7090e8 50%)"></div>Night</div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-label">Add / Manage</div>
+          <div class="add-row">
+            <select id="new-slide-type"></select>
+            <button class="btn btn-gold btn-sm" onclick="addSlide()">+ Add</button>
+          </div>
+          <div class="slide-actions">
+            <button class="btn btn-ghost btn-sm" onclick="duplicateSlide()" style="justify-content:center">⎘ Dup</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSlide()" style="justify-content:center">🗑 Del</button>
+          </div>
+        </div>
+        <div class="section" id="dynamic-editor"></div>
+        <div class="section">
+          <div class="section-label">Style</div>
+          <div class="field">
+            <label>Heading Size</label>
+            <div class="range-field">
+              <input type="range" id="rng-hooksize" min="14" max="64" value="38" oninput="updateStyle(this.value)">
+              <span class="range-val" id="rng-val">38</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Accent Color</label>
+            <div class="swatch-row">
+              <div class="swatch active" style="background:#c9a84c" data-color="#c9a84c" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#9a7030" data-color="#9a7030" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#b83535" data-color="#b83535" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#3090c0" data-color="#3090c0" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#9060d0" data-color="#9060d0" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#38a060" data-color="#38a060" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#e08040" data-color="#e08040" onclick="setAccent(this)"></div>
+              <div class="swatch" style="background:#e060a0" data-color="#e060a0" onclick="setAccent(this)"></div>
+            </div>
+            <div class="custom-color-wrap">
+              <label>Custom</label>
+              <input type="color" id="custom-color-picker" value="#c9a84c" oninput="setCustomAccent(this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIDEO MODE PANEL -->
+      <div id="vid-panel" class="video-panel">
+        <div class="section">
+          <div class="section-label">Video Format</div>
+          <div class="chip-grid">
+            <div class="chip active" id="vf-story"    onclick="setVidFormat('story',this)"   ><div class="chip-swatch" style="background:linear-gradient(to right,#1a1a1a 40%,#c9a84c 40%)"></div>Story</div>
+            <div class="chip" id="vf-square"   onclick="setVidFormat('square',this)"  ><div class="chip-swatch" style="background:#c9a84c22;border:1px solid rgba(201,168,76,.3)"></div>Square</div>
+            <div class="chip" id="vf-portrait" onclick="setVidFormat('portrait',this)"><div class="chip-swatch" style="background:#1a1a1a;border:1px solid rgba(201,168,76,.3)"></div>4:5</div>
+            <div class="chip" id="vf-land"     onclick="setVidFormat('landscape',this)"><div class="chip-swatch" style="background:#c9a84c22;border:1px solid rgba(201,168,76,.3)"></div>16:9</div>
+          </div>
+        </div>
+
+        <!-- Video upload -->
+        <div class="section">
+          <div class="section-label">Upload Video</div>
+          <div class="vid-upload-zone" id="vid-upload-zone">
+            <input type="file" accept="video/mp4,video/webm,video/quicktime,video/mov" onchange="handleVideoUpload(this)">
+            <div class="vid-icon">🎬</div>
+            <div class="vid-label">Tap to upload video</div>
+            <div class="vid-sub">MP4 · WebM · MOV · up to 500MB</div>
+          </div>
+        </div>
+
+        <!-- Video editor (shown after upload) -->
+        <div class="vid-editor" id="vid-editor">
+          <!-- Info bar -->
+          <div class="vid-info">
+            <div>
+              <div class="vid-info-label">File</div>
+              <div class="vid-info-val" id="vid-filename" style="font-size:.46rem;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+            </div>
+            <div style="text-align:right">
+              <div class="vid-info-label">Duration</div>
+              <div class="vid-info-val" id="vid-duration">—</div>
+            </div>
+          </div>
+
+          <!-- Playback -->
+          <div class="vid-playback">
+            <button class="vid-play-btn" id="vid-play-btn" onclick="toggleVideoPlay()">▶</button>
+            <div class="vid-progress-wrap" id="vid-progress-wrap" onclick="seekVideo(event)">
+              <div class="vid-progress-fill" id="vid-progress-fill" style="width:0%"></div>
+            </div>
+            <span class="vid-time-txt" id="vid-time-txt">0:00 / 0:00</span>
+          </div>
+
+          <!-- Volume -->
+          <div class="vid-vol-row">
+            <span class="vid-vol-icon" id="vol-icon">🔊</span>
+            <input type="range" class="vid-vol-slider" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
+          </div>
+
+          <!-- Trim -->
+          <div class="trim-section">
+            <div class="trim-label">⟐ Trim Clip</div>
+            <div class="trim-track" id="trim-track">
+              <div class="trim-waveform" id="trim-waveform"></div>
+              <div class="trim-range" id="trim-range"></div>
+              <div class="trim-handle left" id="trim-left"  onmousedown="startTrimDrag('left',event)"  ontouchstart="startTrimDrag('left',event)"></div>
+              <div class="trim-handle right" id="trim-right" onmousedown="startTrimDrag('right',event)" ontouchstart="startTrimDrag('right',event)"></div>
+            </div>
+            <div class="trim-times">
+              <span class="trim-time" id="trim-start-lbl">Start: 0:00</span>
+              <span class="trim-time" id="trim-end-lbl">End: 0:00</span>
+            </div>
+          </div>
+
+          <!-- Text Overlay -->
+          <div class="section-label" style="margin-top:4px">Text Overlay</div>
+          <div class="vid-overlay-section">
+            <div class="field">
+              <label>Badge / Tag</label>
+              <input type="text" id="vid-badge" value="New Arrival" oninput="updateVidOverlay()">
+            </div>
+            <div class="field">
+              <label>Main Title</label>
+              <input type="text" id="vid-title" value="The Ultimate Setup." oninput="updateVidOverlay()">
+            </div>
+            <div class="field">
+              <label>Sub Text</label>
+              <input type="text" id="vid-sub" value="Premium gear for creators who demand more." oninput="updateVidOverlay()">
+            </div>
+            <div class="field">
+              <label>Brand Watermark</label>
+              <input type="text" id="vid-brand" value="YOUR BRAND" oninput="updateVidOverlay()">
+            </div>
+            <div class="field">
+              <label>Title Size</label>
+              <div class="range-field">
+                <input type="range" id="vid-title-size" min="14" max="52" value="28" oninput="updateVidOverlay()">
+                <span class="range-val" id="vid-title-size-val">28</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Overlay Position</label>
+              <div class="overlay-pos-grid">
+                <button class="overlay-pos-btn" onclick="setOverlayPos('top',this)">Top</button>
+                <button class="overlay-pos-btn" onclick="setOverlayPos('center',this)">Center</button>
+                <button class="overlay-pos-btn active" onclick="setOverlayPos('bottom',this)">Bottom</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Overlay Accent Color</label>
+              <div class="swatch-row" id="vid-swatch-row">
+                <div class="swatch active" style="background:#c9a84c" data-color="#c9a84c" onclick="setVidAccent(this)"></div>
+                <div class="swatch" style="background:#b83535" data-color="#b83535" onclick="setVidAccent(this)"></div>
+                <div class="swatch" style="background:#3090c0" data-color="#3090c0" onclick="setVidAccent(this)"></div>
+                <div class="swatch" style="background:#9060d0" data-color="#9060d0" onclick="setVidAccent(this)"></div>
+                <div class="swatch" style="background:#38a060" data-color="#38a060" onclick="setVidAccent(this)"></div>
+                <div class="swatch" style="background:#e060a0" data-color="#e060a0" onclick="setVidAccent(this)"></div>
+              </div>
+            </div>
+            <div class="field" style="display:flex;gap:6px;margin-top:2px">
+              <button class="btn btn-ghost btn-sm" onclick="toggleOverlayVisible()" id="overlay-toggle-btn" style="flex:1;justify-content:center">👁 Hide</button>
+              <button class="btn btn-danger btn-sm" onclick="removeVideo()" style="flex:1;justify-content:center">🗑 Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export buttons for video -->
+        <div class="section">
+          <div class="section-label">Export Video Frame</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:.44rem;color:var(--text3);line-height:1.7;margin-bottom:8px">
+            Export captures the current frame + overlay as a high-res PNG. Use a screen recorder or your phone to record the live preview for full video export.
+          </div>
+          <div class="export-row">
+            <button class="btn btn-gold btn-sm" onclick="exportVideoFrame()" style="justify-content:center">📸 Frame PNG</button>
+            <button class="btn btn-outline btn-sm" onclick="copyVidTip()" style="justify-content:center">💡 Record Tip</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar-scroll -->
+
+    <div class="sidebar-footer">
+      <div class="export-row">
+        <button class="btn btn-gold btn-sm" onclick="downloadCurrentSlide()" style="justify-content:center">⬇ Export</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadAllSlides()" style="justify-content:center">⬇ ZIP All</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="preview-wrap" id="preview-wrap">
+      <!-- Image canvas -->
+      <div class="ig-canvas" id="ig-canvas" data-format="story" data-template="dark-gold"></div>
+
+      <!-- Video canvas -->
+      <div class="vid-canvas-wrap" id="vid-canvas-wrap" data-format="story">
+        <video id="main-video" playsinline preload="metadata"></video>
+        <div class="vid-mute-badge" id="vid-mute-badge">MUTED</div>
+        <div class="vid-overlay-ui" id="vid-overlay-ui">
+          <div class="vid-text-layer" id="vid-text-layer">
+            <div class="vid-text-badge" id="vo-badge" style="background:var(--gold);color:#000">New Arrival</div>
+            <div class="vid-text-title" id="vo-title" style="font-size:28px">The Ultimate Setup.</div>
+            <div class="vid-text-sub" id="vo-sub">Premium gear for creators who demand more.</div>
+          </div>
+        </div>
+        <div class="vid-brand-mark" id="vo-brand">YOUR BRAND</div>
+        <div class="vid-empty" id="vid-empty">
+          <div class="ve-icon">🎬</div>
+          <div class="ve-text">Upload a video<br>from the sidebar panel</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-strip" id="slide-strip"></div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ════════════════════════════════════════
+//  GLOBAL STATE
+// ════════════════════════════════════════
+let appMode = 'image'; // 'image' | 'video'
+let currentSlideIndex = 0;
+let currentTemplate = 'dark-gold';
+let currentAccent = '#c9a84c';
+let currentFormat = 'story';
+let mainFontSize = 38;
+
+// Video state
+let vidSrc = null;
+let vidDuration = 0;
+let trimStart = 0;
+let trimEnd = 0;
+let overlayPos = 'bottom';
+let overlayVisible = true;
+let vidAccent = '#c9a84c';
+let vidFormat = 'story';
+let isDraggingTrim = null;
+
+// History
+let history = [], historyIndex = -1;
+const MAX_HISTORY = 40;
+
+const TEMPLATE_ACCENTS = {
+  'dark-gold':'#c9a84c','light-warm':'#a07830','obsidian':'#a078dc',
+  'ivory':'#b03030','slate':'#50a0dc','matte-rose':'#e080a0',
+  'forest':'#60c878','midnight':'#7090e8'
+};
+const BG_MAP = {
+  'dark-gold':'#0a0a0a','light-warm':'#faf5ec','obsidian':'#0d0d14',
+  'ivory':'#f5f0e4','slate':'#1a1f2e','matte-rose':'#1a1015',
+  'forest':'#0d140f','midnight':'#080810'
+};
+const LIGHT_TEMPLATES = ['light-warm','ivory'];
+const FORMAT_DIMS = {
+  story:{w:1080,h:1920},square:{w:1080,h:1080},
+  portrait:{w:1080,h:1350},landscape:{w:1920,h:1080}
+};
+
+const CARD_TYPES = {
+  story:[
+    {value:'hook',label:'Text Hook'},{value:'product',label:'Product Focus'},
+    {value:'review',label:'Customer Review'},{value:'split',label:'Split Compare'},
+    {value:'expert',label:'Expert Profile'},{value:'promo',label:'Promo / Sale'},
+    {value:'media',label:'Full Image BG'},{value:'list',label:'Numbered List'},
+    {value:'compare',label:'Text Compare'},{value:'framework',label:'Framework / Steps'},
+    {value:'quote',label:'Quote Card'},{value:'closing',label:'Closing Card'},
+    {value:'caption',label:'Caption Block'}
+  ],
+  post:[
+    {value:'post-img-full',label:'Image Full Bleed'},{value:'post-img-text',label:'Image + Text Split'},
+    {value:'post-text',label:'Text Post'},{value:'post-quote',label:'Quote Post'},
+    {value:'post-compare',label:'Comparison Post'},{value:'post-product',label:'Product Showcase'},
+    {value:'post-carousel',label:'Carousel Slide'},{value:'post-stats',label:'Stats / Infographic'},
+    {value:'post-announce',label:'Announcement'}
+  ]
+};
+
+const imgStore = {};
+function imgKey(si,f){return`s${si}_i${f}`}
+
+const defaultCardData = {
+  hook:{label:'Hook',category:'Pro Tip',hook:'Stop overpaying for standard tech.',accent:'overpaying',sub:'We source the best gear so you never have to compromise.',brand:'YOUR BRAND'},
+  product:{label:'Product',img1:'',title:'Sony Alpha A7 IV',price:'₹2,50,000',specs:'• 33MP Full-Frame Sensor\n• 4K 60p Video\n• Real-time Eye AF',cta:'Tap to Buy',brand:'YOUR BRAND'},
+  review:{label:'Review',img1:'',rating:'★★★★★',quote:'Absolutely the best store! Fast delivery.',author:'Rahul D.',role:'Verified Buyer',brand:'YOUR BRAND'},
+  split:{label:'Split',img1:'',textTop:'OLED TV',img2:'',textBottom:'QLED TV',centerTag:'VS',brand:'YOUR BRAND'},
+  expert:{label:'Expert',img1:'',name:'Store Manager',title:'Your Brand Name',quote:'We personally test every device before recommending it.',brand:'YOUR BRAND'},
+  promo:{label:'Promo',eyebrow:'Limited Time Offer',title:'Summer Tech Sale',price:'Up to 40% Off',detail:'On all Smart TVs & Audio',cta:'Tap To Shop Now',brand:'YOUR BRAND'},
+  media:{label:'Media',badge:'New Arrival',title:'The Ultimate Setup.',text:'Upgrade your workspace with high-performance displays.',img1:'',brand:'YOUR BRAND'},
+  list:{label:'List',eyebrow:'Top Picks',title:'Top Tech Upgrades',items:'4K Smart LED Displays\nHigh-Efficiency Inverter ACs\nNext-Gen Gaming Laptops\nNoise-Cancelling Audio',brand:'YOUR BRAND'},
+  compare:{label:'Compare',category:'Standard vs Premium',avg:'Unbranded tech. No warranty. Hidden repair costs.',elite:'Trusted brands. Extended warranty. Total peace of mind.',bottom:'Value is what you get, not just what you pay.',brand:'YOUR BRAND'},
+  framework:{label:'Steps',category:'How To Choose A TV',steps:'Measure your room viewing distance.\nChoose OLED for dark or QLED for bright rooms.\nCheck HDMI 2.1 for gaming.',closing:'Visit our store for a live demo.',brand:'YOUR BRAND'},
+  quote:{label:'Quote',quote:'Quality is remembered long after the price is forgotten.',author:'Aldo Gucci',brand:'YOUR BRAND'},
+  closing:{label:'Closing',closing:'"Your trusted tech partner."',brand:'YOUR BRAND',handle:'@yourbrand'},
+  caption:{label:'Caption',caption:'Drop by today to check out our latest arrivals. Zero-cost EMI on all major cards.',tags:'#YourBrand #TechUpgrade #Gadgets',brand:'YOUR BRAND'},
+  'post-img-full':{label:'Image Full',img1:'',tag:'New Arrival',title:'The Ultimate Camera Setup',sub:'Premium gear for creators who demand more.',brand:'YOUR BRAND'},
+  'post-img-text':{label:'Img+Text',img1:'',tag:'Featured',title:'Sony Alpha Series',desc:'Professional mirrorless cameras built for every scene.',cta:'Shop Now',brand:'YOUR BRAND'},
+  'post-text':{label:'Text Post',eyebrow:'Pro Insight',body:"The right gear doesn't just take photos — it tells stories.",sub:'Discover our curated collection of professional cameras.',handle:'@yourbrand',brand:'YOUR BRAND'},
+  'post-quote':{label:'Quote Post',quote:'The best camera is the one you have with you — unless you have one of ours.',author:'The APEX Team',role:'Your Tech Partner',brand:'YOUR BRAND'},
+  'post-compare':{label:'Compare',tag:'Comparison',title:'Budget vs Premium',avgItems:'Average image quality\nLimited warranty\nBasic support',eliteItems:'Studio-grade output\n3-year warranty\n24/7 expert support',foot:'Invest once. Shoot forever.',brand:'YOUR BRAND'},
+  'post-product':{label:'Product Post',img1:'',badge:'Best Seller',title:'Sony A7 IV',price:'₹2,50,000',specs:'33MP Full-Frame\n4K 60fps\nReal-time Eye AF',cta:'Shop Now',brand:'YOUR BRAND'},
+  'post-carousel':{label:'Carousel',num:'01',title:'Why Professional Gear Matters',body:'Every frame you shoot is a chance to show the world your vision. Premium glass and sensors make the difference.',brand:'YOUR BRAND'},
+  'post-stats':{label:'Stats',tag:'By The Numbers',title:'Why Customers Choose Us',val1:'10K+',lbl1:'Happy Customers',val2:'500+',lbl2:'Products',val3:'4.9★',lbl3:'Rating',val4:'24/7',lbl4:'Support',sub:'Trusted by creators across India.',brand:'YOUR BRAND'},
+  'post-announce':{label:'Announce',tag:'Announcement',title:'Big Sale\nThis Weekend',sub:'Up to 60% off on all cameras, lenses and accessories.',date:'28 – 30 April',brand:'YOUR BRAND'}
+};
+
+let slides = [
+  {type:'hook',format:'story',...defaultCardData.hook},
+  {type:'product',format:'story',...defaultCardData.product},
+  {type:'post-img-full',format:'square',...defaultCardData['post-img-full']},
+  {type:'post-compare',format:'square',...defaultCardData['post-compare']},
+  {type:'post-quote',format:'portrait',...defaultCardData['post-quote']},
+];
+
+// ════════════════════════════════════════
+//  MODE SWITCHING
+// ════════════════════════════════════════
+function setMode(mode, btn) {
+  appMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const isVid = mode==='video';
+  document.getElementById('img-panel').style.display = isVid ? 'none' : '';
+  document.getElementById('vid-panel').classList.toggle('active', isVid);
+  document.getElementById('ig-canvas').style.display = isVid ? 'none' : '';
+  document.getElementById('vid-canvas-wrap').classList.toggle('active', isVid);
+  document.getElementById('format-tabs').style.display = isVid ? 'none' : '';
+  if(!isVid) updatePost();
+  else updateVidCanvasSize();
+  updateStrip();
+}
+
+// ════════════════════════════════════════
+//  FORMAT (IMAGE MODE)
+// ════════════════════════════════════════
+function setFormat(fmt, btn) {
+  currentFormat = fmt;
+  document.querySelectorAll('.format-tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('ig-canvas').setAttribute('data-format', fmt);
+  if(slides[currentSlideIndex]) slides[currentSlideIndex].format = fmt;
+  populateCardTypeSelect();
+  saveHistory();
+  updatePost();
+}
+function isPostFormat(){return currentFormat!=='story'}
+function populateCardTypeSelect(){
+  const sel=document.getElementById('new-slide-type');
+  const group=isPostFormat()?'post':'story';
+  sel.innerHTML=CARD_TYPES[group].map(t=>`<option value="${t.value}">${t.label}</option>`).join('');
+}
+
+// ════════════════════════════════════════
+//  VIDEO FORMAT
+// ════════════════════════════════════════
+function setVidFormat(fmt, btn) {
+  vidFormat = fmt;
+  document.querySelectorAll('#vid-panel .chip').forEach(c=>c.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  updateVidCanvasSize();
+}
+function updateVidCanvasSize(){
+  const w=document.getElementById('vid-canvas-wrap');
+  w.setAttribute('data-format', vidFormat);
+}
+
+// ════════════════════════════════════════
+//  VIDEO UPLOAD & PLAYER
+// ════════════════════════════════════════
+function handleVideoUpload(input) {
+  if(!input.files||!input.files[0]) return;
+  const file = input.files[0];
+  if(file.size > 600*1024*1024) { showToast('File too large (max 600MB)', true); return; }
+  const url = URL.createObjectURL(file);
+  vidSrc = url;
+  const vid = document.getElementById('main-video');
+  vid.src = url;
+  vid.load();
+  vid.onloadedmetadata = () => {
+    vidDuration = vid.duration;
+    trimStart = 0; trimEnd = vidDuration;
+    document.getElementById('vid-duration').textContent = fmtTime(vidDuration);
+    document.getElementById('vid-filename').textContent = file.name;
+    document.getElementById('vid-time-txt').textContent = `0:00 / ${fmtTime(vidDuration)}`;
+    document.getElementById('trim-end-lbl').textContent = `End: ${fmtTime(vidDuration)}`;
+    buildWaveform();
+    updateTrimUI();
+    document.getElementById('vid-editor').classList.add('visible');
+    document.getElementById('vid-upload-zone').classList.add('has-vid');
+    document.getElementById('vid-upload-zone').querySelector('.vid-label').textContent = '✓ Video loaded — tap to change';
+    document.getElementById('vid-empty').style.display = 'none';
+    setupVideoProgressListener();
+    setMode('video', document.getElementById('mode-vid-btn'));
+    showToast('Video loaded! Edit overlay in sidebar.');
+  };
+  vid.onerror = () => showToast('Failed to load video. Try MP4 or WebM.', true);
+}
+
+function setupVideoProgressListener() {
+  const vid = document.getElementById('main-video');
+  vid.addEventListener('timeupdate', () => {
+    if(!vidDuration) return;
+    const pct = (vid.currentTime/vidDuration)*100;
+    document.getElementById('vid-progress-fill').style.width = pct+'%';
+    document.getElementById('vid-time-txt').textContent = `${fmtTime(vid.currentTime)} / ${fmtTime(vidDuration)}`;
+    // Loop within trim
+    if(vid.currentTime >= trimEnd) { vid.currentTime = trimStart; }
+  });
+  vid.addEventListener('play', ()=>{ document.getElementById('vid-play-btn').textContent = '⏸'; });
+  vid.addEventListener('pause', ()=>{ document.getElementById('vid-play-btn').textContent = '▶'; });
+}
+
+function toggleVideoPlay() {
+  const vid = document.getElementById('main-video');
+  if(!vidSrc){ showToast('Upload a video first', true); return; }
+  if(vid.paused) {
+    if(vid.currentTime < trimStart || vid.currentTime >= trimEnd) vid.currentTime = trimStart;
+    vid.play();
+  } else { vid.pause(); }
+}
+
+function seekVideo(e) {
+  const vid = document.getElementById('main-video');
+  if(!vidSrc) return;
+  const rect = document.getElementById('vid-progress-wrap').getBoundingClientRect();
+  const pct = Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  vid.currentTime = pct * vidDuration;
+}
+
+function setVolume(val) {
+  const vid = document.getElementById('main-video');
+  vid.volume = parseFloat(val);
+  const icon = document.getElementById('vol-icon');
+  const badge = document.getElementById('vid-mute-badge');
+  if(parseFloat(val)===0) {
+    icon.textContent='🔇'; badge.classList.add('show');
+    setTimeout(()=>badge.classList.remove('show'),1500);
+  } else { icon.textContent='🔊'; }
+}
+
+function removeVideo() {
+  const vid = document.getElementById('main-video');
+  vid.pause(); vid.src = ''; vidSrc = null; vidDuration = 0;
+  document.getElementById('vid-editor').classList.remove('visible');
+  document.getElementById('vid-upload-zone').classList.remove('has-vid');
+  document.getElementById('vid-upload-zone').querySelector('.vid-label').textContent = 'Tap to upload video';
+  document.getElementById('vid-empty').style.display = '';
+  document.getElementById('vid-progress-fill').style.width = '0%';
+  showToast('Video removed');
+}
+
+function fmtTime(s) {
+  if(isNaN(s)) return '0:00';
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+// ════════════════════════════════════════
+//  WAVEFORM VISUALIZATION
+// ════════════════════════════════════════
+function buildWaveform() {
+  const wrap = document.getElementById('trim-waveform');
+  const bars = 40;
+  let html = '';
+  for(let i=0;i<bars;i++){
+    const h = 20 + Math.random()*60;
+    html += `<div class="trim-bar" style="height:${h}%"></div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+// ════════════════════════════════════════
+//  TRIM DRAG
+// ════════════════════════════════════════
+function startTrimDrag(side, e) {
+  e.preventDefault();
+  isDraggingTrim = side;
+  const move = ev => {
+    const track = document.getElementById('trim-track');
+    const rect = track.getBoundingClientRect();
+    const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    const pct = Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));
+    const t = pct * vidDuration;
+    if(side==='left')  { trimStart = Math.min(t, trimEnd-0.5); }
+    else               { trimEnd   = Math.max(t, trimStart+0.5); }
+    updateTrimUI();
+  };
+  const up = () => {
+    isDraggingTrim = null;
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('touchend', up);
+    const vid = document.getElementById('main-video');
+    vid.currentTime = trimStart;
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+  document.addEventListener('touchmove', move);
+  document.addEventListener('touchend', up);
+}
+
+function updateTrimUI() {
+  if(!vidDuration) return;
+  const lPct = (trimStart/vidDuration)*100;
+  const rPct = (trimEnd/vidDuration)*100;
+  const range = document.getElementById('trim-range');
+  const lHandle = document.getElementById('trim-left');
+  const rHandle = document.getElementById('trim-right');
+  range.style.left = lPct+'%';
+  range.style.width = (rPct-lPct)+'%';
+  lHandle.style.left = lPct+'%';
+  rHandle.style.left = rPct+'%';
+  document.getElementById('trim-start-lbl').textContent = `Start: ${fmtTime(trimStart)}`;
+  document.getElementById('trim-end-lbl').textContent   = `End: ${fmtTime(trimEnd)}`;
+}
+
+// ════════════════════════════════════════
+//  VIDEO TEXT OVERLAY
+// ════════════════════════════════════════
+function updateVidOverlay() {
+  const badge = document.getElementById('vid-badge').value;
+  const title = document.getElementById('vid-title').value;
+  const sub   = document.getElementById('vid-sub').value;
+  const brand = document.getElementById('vid-brand').value;
+  const sz    = document.getElementById('vid-title-size').value;
+  document.getElementById('vid-title-size-val').textContent = sz;
+  document.getElementById('vo-badge').textContent = badge;
+  document.getElementById('vo-badge').style.background = vidAccent;
+  document.getElementById('vo-title').textContent = title;
+  document.getElementById('vo-title').style.fontSize = sz+'px';
+  document.getElementById('vo-sub').textContent = sub;
+  document.getElementById('vo-brand').textContent = brand;
+  applyOverlayPosition();
+}
+
+function setOverlayPos(pos, btn) {
+  overlayPos = pos;
+  document.querySelectorAll('.overlay-pos-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  applyOverlayPosition();
+}
+
+function applyOverlayPosition() {
+  const layer = document.getElementById('vid-text-layer');
+  const ui = document.getElementById('vid-overlay-ui');
+  ui.style.justifyContent = overlayPos==='top' ? 'flex-start' : overlayPos==='center' ? 'center' : 'flex-end';
+  if(overlayPos==='top') {
+    layer.style.background = 'linear-gradient(to bottom,rgba(0,0,0,.82) 0%,rgba(0,0,0,0) 100%)';
+    layer.style.paddingTop = '20px'; layer.style.paddingBottom = '8px';
+  } else if(overlayPos==='center') {
+    layer.style.background = 'rgba(0,0,0,.62)';
+    layer.style.paddingTop = '16px'; layer.style.paddingBottom = '16px';
+  } else {
+    layer.style.background = 'linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,0) 100%)';
+    layer.style.paddingTop = '8px'; layer.style.paddingBottom = '24px';
+  }
+}
+
+function toggleOverlayVisible() {
+  overlayVisible = !overlayVisible;
+  document.getElementById('vid-overlay-ui').style.opacity = overlayVisible ? '1' : '0';
+  document.getElementById('overlay-toggle-btn').textContent = overlayVisible ? '👁 Hide' : '👁 Show';
+}
+
+function setVidAccent(swatch) {
+  vidAccent = swatch.dataset.color;
+  document.querySelectorAll('#vid-swatch-row .swatch').forEach(s=>s.classList.remove('active'));
+  swatch.classList.add('active');
+  document.getElementById('vo-badge').style.background = vidAccent;
+}
+
+async function exportVideoFrame() {
+  const vid = document.getElementById('main-video');
+  if(!vidSrc){ showToast('No video loaded', true); return; }
+  showLoading('Capturing frame...');
+  try {
+    const wrap = document.getElementById('vid-canvas-wrap');
+    const canvas = await html2canvas(wrap, {
+      scale: 2, useCORS: true, allowTaint: true,
+      backgroundColor: '#000', logging: false
+    });
+    const link = document.createElement('a');
+    link.download = `apex-video-frame-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('✓ Frame exported as PNG!');
+  } catch(e){ showToast('Export failed: '+e.message, true); }
+  hideLoading();
+}
+
+function copyVidTip() {
+  const tip = 'To export full video with overlay:\n1. On desktop: use OBS or QuickTime screen recording\n2. On iPhone: use Screen Recording from Control Center\n3. On Android: use built-in Screen Recorder\nThen crop to the preview area.';
+  if(navigator.clipboard) {
+    navigator.clipboard.writeText(tip).then(()=>showToast('Tip copied to clipboard!'));
+  } else {
+    alert(tip);
+  }
+}
+
+// ════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════
+function saveHistory() {
+  history = history.slice(0, historyIndex+1);
+  history.push({slides:JSON.parse(JSON.stringify(slides)),currentSlideIndex,currentTemplate,currentAccent,currentFormat,mainFontSize});
+  if(history.length>MAX_HISTORY) history.shift();
+  historyIndex = history.length-1;
+  updateHistoryButtons();
+}
+function undoAction(){if(historyIndex<=0)return;historyIndex--;applyHistoryState(history[historyIndex])}
+function redoAction(){if(historyIndex>=history.length-1)return;historyIndex++;applyHistoryState(history[historyIndex])}
+function applyHistoryState(s){
+  slides=JSON.parse(JSON.stringify(s.slides));
+  currentSlideIndex=s.currentSlideIndex;currentTemplate=s.currentTemplate;
+  currentAccent=s.currentAccent;currentFormat=s.currentFormat;mainFontSize=s.mainFontSize;
+  document.getElementById('rng-hooksize').value=mainFontSize;
+  document.getElementById('rng-val').textContent=mainFontSize;
+  document.getElementById('ig-canvas').setAttribute('data-format',currentFormat);
+  document.querySelectorAll('.format-tab').forEach(t=>{
+    const fmt=t.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    t.classList.toggle('active',fmt===currentFormat);
+  });
+  document.querySelectorAll('#img-panel .chip').forEach(c=>{
+    const tpl=c.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    c.classList.toggle('active',tpl===currentTemplate);
+  });
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===currentAccent));
+  populateCardTypeSelect();refreshAll();updateHistoryButtons();
+}
+function updateHistoryButtons(){
+  const u=document.getElementById('undo-btn'),r=document.getElementById('redo-btn');
+  if(u)u.style.opacity=historyIndex<=0?.3:1;
+  if(r)r.style.opacity=historyIndex>=history.length-1?.3:1;
+}
+
+// ════════════════════════════════════════
+//  MOBILE SIDEBAR
+// ════════════════════════════════════════
+function toggleSidebar(){
+  const s=document.getElementById('sidebar'),b=document.getElementById('backdrop');
+  const open=s.classList.toggle('open');
+  b.classList.toggle('visible',open);
+  document.getElementById('mobile-toggle-btn').textContent=open?'✕ Close':'✦ Edit';
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('visible');
+  document.getElementById('mobile-toggle-btn').textContent='✦ Edit';
+}
+
+// ════════════════════════════════════════
+//  IMAGE CROP
+// ════════════════════════════════════════
+function handleImageUpload(input,imgField,slideIdx){
+  if(!input.files||!input.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    slides[slideIdx][imgField]=e.target.result;
+    const k=imgKey(slideIdx,imgField);
+    imgStore[k]={src:e.target.result,scale:1,x:50,y:50,rotate:0};
+    saveHistory();updatePost();
+    const zone=input.closest('.img-upload-zone');
+    if(zone){zone.classList.add('has-img');zone.querySelector('.upload-label').textContent='✓ Loaded — tap to change'}
+    const ctrl=document.getElementById('crop-'+imgField+'-'+slideIdx);
+    if(ctrl)ctrl.classList.add('visible');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function removeImage(imgField,slideIdx){
+  slides[slideIdx][imgField]='';delete imgStore[imgKey(slideIdx,imgField)];
+  saveHistory();updatePost();renderSidebar();
+}
+function getCropImg(slideIdx,imgField){
+  const src=slides[slideIdx]?.[imgField];
+  if(!src)return`<div class="img-placeholder">[ UPLOAD IMAGE ]</div>`;
+  const k=imgStore[imgKey(slideIdx,imgField)]||{scale:1,x:50,y:50,rotate:0};
+  return`<div style="width:100%;height:100%;overflow:hidden;transform:scale(${k.scale}) rotate(${k.rotate||0}deg);transform-origin:${k.x}% ${k.y}%;transition:transform .1s">
+    <img src="${src}" style="width:100%;height:100%;object-fit:cover;object-position:${k.x}% ${k.y}%;display:block">
+  </div>`;
+}
+function updateCrop(slideIdx,imgField,prop,val){
+  const k=imgKey(slideIdx,imgField);
+  if(!imgStore[k])imgStore[k]={src:slides[slideIdx][imgField]||'',scale:1,x:50,y:50,rotate:0};
+  imgStore[k][prop]=parseFloat(val);
+  const el=document.getElementById(`cv-${prop}-${imgField}-${slideIdx}`);
+  if(el)el.textContent=prop==='scale'?parseFloat(val).toFixed(2)+'×':prop==='rotate'?val+'°':val+'%';
+  updatePost();
+}
+function resetCrop(slideIdx,imgField){
+  const k=imgKey(slideIdx,imgField);
+  const src=imgStore[k]?.src||slides[slideIdx]?.[imgField]||'';
+  imgStore[k]={src,scale:1,x:50,y:50,rotate:0};
+  ['scale','x','y','rotate'].forEach(p=>{
+    const d2={scale:1,x:50,y:50,rotate:0};
+    const inp=document.querySelector(`input[oninput*="updateCrop(${slideIdx},'${imgField}','${p}'"]`);
+    if(inp)inp.value=d2[p];
+    const vEl=document.getElementById(`cv-${p}-${imgField}-${slideIdx}`);
+    if(vEl)vEl.textContent=p==='scale'?'1.00×':p==='rotate'?'0°':'50%';
+  });
+  updatePost();
+}
+
+// ════════════════════════════════════════
+//  SIDEBAR EDITOR
+// ════════════════════════════════════════
+function renderSidebar(){
+  const el=document.getElementById('dynamic-editor');
+  const d=slides[currentSlideIndex];
+  const idx=currentSlideIndex;
+  if(!d)return;
+  let html=`<div class="section-label">Edit: ${d.label||d.type}</div>`;
+  const inp=(key,lbl)=>`<div class="field"><label>${lbl}</label><input type="text" value="${esc(d[key]||'')}" oninput="updateSlideData('${key}',this.value)"></div>`;
+  const ta=(key,lbl)=>`<div class="field"><label>${lbl}</label><textarea oninput="updateSlideData('${key}',this.value)">${esc(d[key]||'')}</textarea></div>`;
+  const imgU=(imgField,lbl)=>{
+    const hasImg=!!d[imgField];
+    const k=imgStore[imgKey(idx,imgField)]||{scale:1,x:50,y:50,rotate:0};
+    return`<div class="field"><label>${lbl}</label>
+      <div class="img-upload-zone ${hasImg?'has-img':''}">
+        <input type="file" accept="image/*" onchange="handleImageUpload(this,'${imgField}',${idx})">
+        <div class="upload-icon">🖼</div>
+        <div class="upload-label">${hasImg?'✓ Loaded — tap to change':'Tap to upload'}</div>
+      </div>
+      <div class="crop-controls ${hasImg?'visible':''}" id="crop-${imgField}-${idx}">
+        <div class="crop-row"><label>Zoom</label><input type="range" min="0.5" max="3.5" step="0.02" value="${k.scale}" oninput="updateCrop(${idx},'${imgField}','scale',this.value)"><span class="crop-val" id="cv-scale-${imgField}-${idx}">${k.scale.toFixed(2)}×</span></div>
+        <div class="crop-row"><label>X Pan</label><input type="range" min="0" max="100" step="1" value="${k.x}" oninput="updateCrop(${idx},'${imgField}','x',this.value)"><span class="crop-val" id="cv-x-${imgField}-${idx}">${k.x}%</span></div>
+        <div class="crop-row"><label>Y Pan</label><input type="range" min="0" max="100" step="1" value="${k.y}" oninput="updateCrop(${idx},'${imgField}','y',this.value)"><span class="crop-val" id="cv-y-${imgField}-${idx}">${k.y}%</span></div>
+        <div class="crop-row"><label>Rotate</label><input type="range" min="-180" max="180" step="1" value="${k.rotate||0}" oninput="updateCrop(${idx},'${imgField}','rotate',this.value)"><span class="crop-val" id="cv-rotate-${imgField}-${idx}">${k.rotate||0}°</span></div>
+        <div class="crop-btns">
+          <button class="crop-reset-btn" onclick="resetCrop(${idx},'${imgField}')">↺ Reset</button>
+          ${hasImg?`<button class="remove-img-btn" onclick="removeImage('${imgField}',${idx})">✕ Remove</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  };
+  if(d.type==='hook')      html+=inp('category','Top Tag')+ta('hook','Main Hook Text')+inp('accent','Highlight Word(s)')+ta('sub','Sub Text');
+  else if(d.type==='product')   html+=imgU('img1','Product Image')+inp('title','Product Name')+inp('price','Price')+ta('specs','Specs (one per line)')+inp('cta','Button Text');
+  else if(d.type==='review')    html+=imgU('img1','Customer Avatar')+inp('rating','Stars')+ta('quote','Review Text')+inp('author','Name')+inp('role','Subtitle');
+  else if(d.type==='split')     html+=imgU('img1','Top Image')+inp('textTop','Top Label')+imgU('img2','Bottom Image')+inp('textBottom','Bottom Label')+inp('centerTag','Center Tag');
+  else if(d.type==='expert')    html+=imgU('img1','Person Photo')+inp('name','Name')+inp('title','Subtitle')+ta('quote','Quote');
+  else if(d.type==='promo')     html+=inp('eyebrow','Eyebrow')+ta('title','Main Title')+inp('price','Price / Offer')+inp('detail','Detail')+inp('cta','CTA Button');
+  else if(d.type==='media')     html+=imgU('img1','Background Image')+inp('badge','Top Badge')+ta('title','Headline')+ta('text','Description');
+  else if(d.type==='list')      html+=inp('eyebrow','Eyebrow')+inp('title','Title')+ta('items','Items (one per line)');
+  else if(d.type==='compare')   html+=inp('category','Title')+ta('avg','Standard Box')+ta('elite','Premium Box')+ta('bottom','Bottom Quote');
+  else if(d.type==='framework') html+=inp('category','Heading')+ta('steps','Steps (one per line)')+inp('closing','Closing Note');
+  else if(d.type==='quote')     html+=ta('quote','Quote Text')+inp('author','Author');
+  else if(d.type==='closing')   html+=ta('closing','Main Text')+inp('handle','Social Handle');
+  else if(d.type==='caption')   html+=ta('caption','Caption Text')+inp('tags','Hashtags');
+  else if(d.type==='post-img-full')  html+=imgU('img1','Background Image')+inp('tag','Top Tag')+ta('title','Main Title')+ta('sub','Subtitle');
+  else if(d.type==='post-img-text')  html+=imgU('img1','Left Image')+inp('tag','Top Tag')+ta('title','Title')+ta('desc','Description')+inp('cta','Button Text');
+  else if(d.type==='post-text')      html+=inp('eyebrow','Eyebrow')+ta('body','Main Body')+ta('sub','Sub Text')+inp('handle','Handle');
+  else if(d.type==='post-quote')     html+=ta('quote','Quote Text')+inp('author','Author')+inp('role','Author Role');
+  else if(d.type==='post-compare')   html+=inp('tag','Top Tag')+inp('title','Title')+ta('avgItems','Standard Points')+ta('eliteItems','Premium Points')+ta('foot','Footer');
+  else if(d.type==='post-product')   html+=imgU('img1','Product Image')+inp('badge','Badge')+inp('title','Product Name')+inp('price','Price')+ta('specs','Specs')+inp('cta','CTA Button');
+  else if(d.type==='post-carousel')  html+=inp('num','Slide Number')+ta('title','Title')+ta('body','Body Text');
+  else if(d.type==='post-stats')     html+=inp('tag','Tag')+inp('title','Heading')+inp('val1','Stat 1')+inp('lbl1','Label 1')+inp('val2','Stat 2')+inp('lbl2','Label 2')+inp('val3','Stat 3')+inp('lbl3','Label 3')+inp('val4','Stat 4')+inp('lbl4','Label 4')+ta('sub','Footer');
+  else if(d.type==='post-announce')  html+=inp('tag','Tag')+ta('title','Main Title')+ta('sub','Sub Text')+inp('date','Date');
+  html+=`<div style="margin-top:4px;">${inp('brand','Brand Watermark')}</div>`;
+  el.innerHTML=html;
+}
+function updateSlideData(key,value){
+  slides[currentSlideIndex][key]=value;updatePost();
+  clearTimeout(updateSlideData._timer);
+  updateSlideData._timer=setTimeout(saveHistory,800);
+}
+
+// ════════════════════════════════════════
+//  ESCAPE & RENDER
+// ════════════════════════════════════════
+function esc(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function highlight(text,word){
+  if(!word?.trim())return esc(text);
+  const e=esc(word.trim());
+  return esc(text).replace(new RegExp(e.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),`<span class="accent">$&</span>`);
+}
+
+function renderSlideHTML(d,idx){
+  if(!d)return'';
+  const fs=mainFontSize;
+  let html='';
+  if(d.type==='hook'){
+    html=`<div class="card-layout story-hook"><span class="badge">${esc(d.category)}</span><div class="hook-text" style="font-size:${fs}px">${highlight(d.hook,d.accent)}</div><div class="rule"></div><div class="sub-text">${esc(d.sub)}</div></div>`;
+  }else if(d.type==='product'){
+    const sp=(d.specs||'').split('\n').filter(Boolean).map(s=>`<div>${esc(s)}</div>`).join('');
+    html=`<div class="story-product-wrap"><div class="story-product-img">${getCropImg(idx,'img1')}</div><div class="story-product-card"><div class="p-title" style="font-size:${fs-10}px">${esc(d.title)}</div><div class="p-price">${esc(d.price)}</div><div class="p-specs">${sp}</div><div class="p-cta">${esc(d.cta)}</div></div></div>`;
+  }else if(d.type==='review'){
+    html=`<div class="card-layout story-review"><div class="stars">${esc(d.rating)}</div><div class="r-quote" style="font-size:${fs-14}px">"${esc(d.quote)}"</div><div class="r-avatar">${getCropImg(idx,'img1')}</div><div class="r-name">${esc(d.author)}</div><div class="r-role">${esc(d.role)}</div></div>`;
+  }else if(d.type==='split'){
+    html=`<div class="story-split-wrap"><div class="split-half">${getCropImg(idx,'img1')}<div class="split-overlay"><div class="split-text">${esc(d.textTop)}</div></div></div><div class="split-center">${esc(d.centerTag)}</div><div class="split-half">${getCropImg(idx,'img2')}<div class="split-overlay"><div class="split-text">${esc(d.textBottom)}</div></div></div></div>`;
+  }else if(d.type==='expert'){
+    html=`<div class="card-layout story-expert"><div class="e-img">${getCropImg(idx,'img1')}</div><div class="e-name">${esc(d.name)}</div><div class="e-title">${esc(d.title)}</div><div class="e-quote" style="font-size:${fs-12}px">"${esc(d.quote)}"</div></div>`;
+  }else if(d.type==='promo'){
+    html=`<div class="card-layout story-promo"><div class="promo-eyebrow">${esc(d.eyebrow)}</div><div class="promo-title" style="font-size:${fs+8}px">${esc(d.title).replace(/\n/g,'<br>')}</div><div class="promo-price-box"><div class="promo-price">${esc(d.price)}</div><div class="promo-detail">${esc(d.detail)}</div></div><div class="promo-cta">${esc(d.cta)}</div></div>`;
+  }else if(d.type==='media'){
+    html=`<div class="story-media-bg">${getCropImg(idx,'img1')}</div><div class="story-media-overlay"></div><div class="card-layout story-media"><div class="media-badge">${esc(d.badge)}</div><div class="media-title" style="font-size:${fs-6}px">${esc(d.title)}</div><div class="media-desc">${esc(d.text)}</div></div>`;
+  }else if(d.type==='list'){
+    const it=(d.items||'').split('\n').filter(Boolean).map((s,i)=>`<div class="list-item"><div class="list-num">0${i+1}</div><div class="list-text">${esc(s)}</div></div>`).join('');
+    html=`<div class="card-layout story-list"><div class="list-eyebrow">↳ ${esc(d.eyebrow)}</div><div class="list-header" style="font-size:${fs-12}px">${esc(d.title)}</div><div class="list-items">${it}</div></div>`;
+  }else if(d.type==='compare'){
+    html=`<div class="card-layout story-compare"><div class="compare-label">Comparison</div><div class="compare-title" style="font-size:${fs-12}px">${esc(d.category)}</div><div class="compare-cols"><div class="col-avg"><div class="col-label">Standard</div><div class="col-text">${esc(d.avg)}</div></div><div class="col-elite"><div class="col-label">Premium ✦</div><div class="col-text">${esc(d.elite)}</div></div></div><div class="bottom-accent">${esc(d.bottom)}</div></div>`;
+  }else if(d.type==='framework'){
+    const st=(d.steps||'').split('\n').filter(Boolean).map((s,i)=>`<div class="fw-step"><span class="step-num">0${i+1}</span><span class="step-text">${esc(s)}</span></div>`).join('');
+    html=`<div class="card-layout story-framework"><div class="fw-title">↳ Process</div><div class="fw-heading" style="font-size:${fs-10}px">${esc(d.category)}</div><div class="fw-steps">${st}</div><div class="fw-closing">${esc(d.closing)}</div></div>`;
+  }else if(d.type==='quote'){
+    html=`<div class="card-layout story-quote"><div class="quote-mark">"</div><div class="quote-text" style="font-size:${fs-12}px">${esc(d.quote)}</div><div class="quote-author">— ${esc(d.author)}</div></div>`;
+  }else if(d.type==='closing'){
+    html=`<div class="card-layout story-closing"><div class="closing-rule"></div><div class="closing-main" style="font-size:${fs-10}px">${esc(d.closing)}</div><div class="closing-rule2"></div><div class="closing-brand">${esc(d.brand)}</div><div class="closing-handle">${esc(d.handle)}</div></div>`;
+  }else if(d.type==='caption'){
+    const tg=(d.tags||'').split(' ').filter(Boolean).map(t=>`<span class="cap-tag">${esc(t)}</span>`).join('');
+    html=`<div class="card-layout story-caption"><div class="cap-eyebrow">↳ Information</div><div class="cap-text">${esc(d.caption)}</div><div class="cap-tags">${tg}</div></div>`;
+  }else if(d.type==='post-img-full'){
+    html=`<div class="post-img-full"><div class="pif-bg">${getCropImg(idx,'img1')}</div><div class="pif-overlay"></div><div class="pif-content"><div class="pif-tag">${esc(d.tag)}</div><div class="pif-title" style="font-size:${fs-4}px">${esc(d.title)}</div><div class="pif-sub">${esc(d.sub)}</div></div></div>`;
+  }else if(d.type==='post-img-text'){
+    html=`<div class="post-img-text"><div class="pit-img">${getCropImg(idx,'img1')}</div><div class="pit-body"><div class="pit-tag">${esc(d.tag)}</div><div class="pit-title" style="font-size:${fs-12}px">${esc(d.title)}</div><div class="pit-desc">${esc(d.desc)}</div><div class="pit-cta">${esc(d.cta)}</div></div></div>`;
+  }else if(d.type==='post-text'){
+    html=`<div class="post-text"><div class="pt-eyebrow">${esc(d.eyebrow)}</div><div class="pt-body" style="font-size:${fs-10}px">${esc(d.body)}</div><div class="pt-rule"></div><div class="pt-sub">${esc(d.sub)}</div><div class="pt-handle">${esc(d.handle)}</div></div>`;
+  }else if(d.type==='post-quote'){
+    html=`<div class="post-quote"><div class="pq-mark">"</div><div class="pq-text" style="font-size:${fs-10}px">${esc(d.quote)}</div><div class="pq-rule"></div><div class="pq-author">${esc(d.author)}</div><div class="pq-role">${esc(d.role)}</div></div>`;
+  }else if(d.type==='post-compare'){
+    const ar=(d.avgItems||'').split('\n').filter(Boolean).map(s=>`<div class="pc-item">${esc(s)}</div>`).join('');
+    const er=(d.eliteItems||'').split('\n').filter(Boolean).map(s=>`<div class="pc-item good">${esc(s)}</div>`).join('');
+    html=`<div class="post-compare"><div class="pc-tag">${esc(d.tag)}</div><div class="pc-title" style="font-size:${fs-10}px">${esc(d.title)}</div><div class="pc-cols"><div class="pc-col"><div class="pc-col-head avg">Standard</div><div class="pc-col-body avg">${ar}</div></div><div class="pc-col"><div class="pc-col-head elite">Premium ✦</div><div class="pc-col-body elite">${er}</div></div></div><div class="pc-foot">${esc(d.foot)}</div></div>`;
+  }else if(d.type==='post-product'){
+    const sp=(d.specs||'').split('\n').filter(Boolean).map(s=>`<div>${esc(s)}</div>`).join('');
+    html=`<div class="post-product"><div class="pp-img">${getCropImg(idx,'img1')}</div><div class="pp-body"><div class="pp-badge">${esc(d.badge)}</div><div class="pp-title" style="font-size:${fs-14}px">${esc(d.title)}</div><div class="pp-price">${esc(d.price)}</div><div class="pp-specs">${sp}</div><div class="pp-cta">${esc(d.cta)}</div></div></div>`;
+  }else if(d.type==='post-carousel'){
+    html=`<div class="post-carousel"><div class="car-num">${esc(d.num)}</div><div class="car-rule"></div><div class="car-title" style="font-size:${fs-8}px">${esc(d.title)}</div><div class="car-body">${esc(d.body)}</div><div class="car-foot"><div class="car-brand">${esc(d.brand)}</div><div class="car-dots"><div class="car-dot active"></div><div class="car-dot"></div><div class="car-dot"></div></div></div></div>`;
+  }else if(d.type==='post-stats'){
+    html=`<div class="post-stats"><div class="ps-tag">${esc(d.tag)}</div><div class="ps-title" style="font-size:${fs-12}px">${esc(d.title)}</div><div class="ps-grid"><div class="ps-item"><div class="ps-val">${esc(d.val1)}</div><div class="ps-label">${esc(d.lbl1)}</div></div><div class="ps-item"><div class="ps-val">${esc(d.val2)}</div><div class="ps-label">${esc(d.lbl2)}</div></div><div class="ps-item"><div class="ps-val">${esc(d.val3)}</div><div class="ps-label">${esc(d.lbl3)}</div></div><div class="ps-item"><div class="ps-val">${esc(d.val4)}</div><div class="ps-label">${esc(d.lbl4)}</div></div></div><div class="ps-sub">${esc(d.sub)}</div></div>`;
+  }else if(d.type==='post-announce'){
+    html=`<div class="post-announce"><div class="pa-tag">${esc(d.tag)}</div><div class="pa-title" style="font-size:${fs+2}px">${esc(d.title).replace(/\n/g,'<br>')}</div><div class="pa-sub">${esc(d.sub)}</div><div class="pa-date">${esc(d.date)}</div></div>`;
+  }
+  html+=`<div class="brand-watermark">${esc(d.brand)}</div>`;
+  return html;
+}
+
+// ════════════════════════════════════════
+//  CORE UPDATE
+// ════════════════════════════════════════
+function updatePost(){
+  const canvas=document.getElementById('ig-canvas');
+  const d=slides[currentSlideIndex];
+  if(!d)return;
+  canvas.innerHTML=renderSlideHTML(d,currentSlideIndex);
+  canvas.style.setProperty('--gold',currentAccent);
+  canvas.setAttribute('data-template',currentTemplate);
+  const fmt=d.format||'story';
+  canvas.setAttribute('data-format',fmt);
+  document.getElementById('slide-counter').textContent=`${currentSlideIndex+1} / ${slides.length}`;
+  const pb=document.getElementById('prev-btn'),nb=document.getElementById('next-btn');
+  if(pb)pb.disabled=currentSlideIndex===0;
+  if(nb)nb.disabled=currentSlideIndex===slides.length-1;
+  updateStrip();
+}
+function updateStyle(val){
+  mainFontSize=parseInt(val);
+  document.getElementById('rng-val').textContent=val;
+  updatePost();
+}
+function updateStrip(){
+  const strip=document.getElementById('slide-strip');
+  let html=slides.map((s,i)=>{
+    const fmt=s.format||'story';
+    const typeShort=s.type.replace('post-','').substring(0,4).toUpperCase();
+    return`<div class="strip-thumb ${i===currentSlideIndex?'active':''}" data-format="${fmt}" onclick="goToSlide(${i})" title="${s.label||s.type}">
+      <span class="strip-num">${i+1}</span><span class="strip-type">${typeShort}</span>
+    </div>`;
+  }).join('');
+  // Video indicator in strip
+  if(vidSrc){
+    html+=`<div class="strip-thumb is-video ${appMode==='video'?'active':''}" data-format="video" onclick="setMode('video',document.getElementById('mode-vid-btn'))" title="Video">
+      <span class="strip-num">▶</span><span class="strip-type">VID</span>
+    </div>`;
+  }
+  html+=`<div class="strip-add" onclick="addSlide()" title="Add"><span>+</span><span>Add</span></div>`;
+  strip.innerHTML=html;
+  requestAnimationFrame(()=>{
+    const active=strip.querySelector('.strip-thumb.active');
+    if(active)active.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+  });
+}
+
+// ════════════════════════════════════════
+//  NAVIGATION & MANAGEMENT
+// ════════════════════════════════════════
+function prevSlide(){if(currentSlideIndex>0){currentSlideIndex--;syncFormatToSlide();refreshAll()}}
+function nextSlide(){if(currentSlideIndex<slides.length-1){currentSlideIndex++;syncFormatToSlide();refreshAll()}}
+function goToSlide(idx){currentSlideIndex=idx;syncFormatToSlide();refreshAll()}
+function refreshAll(){renderSidebar();updatePost()}
+function syncFormatToSlide(){
+  const fmt=slides[currentSlideIndex]?.format||'story';
+  if(fmt!==currentFormat){
+    currentFormat=fmt;
+    document.querySelectorAll('.format-tab').forEach(t=>{
+      const tf=t.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+      t.classList.toggle('active',tf===fmt);
+    });
+    document.getElementById('ig-canvas').setAttribute('data-format',fmt);
+    populateCardTypeSelect();
+  }
+}
+function addSlide(){
+  const t=document.getElementById('new-slide-type').value;
+  saveHistory();
+  slides.splice(currentSlideIndex+1,0,{type:t,format:currentFormat,...defaultCardData[t]});
+  currentSlideIndex++;refreshAll();
+  showToast(`Added ${defaultCardData[t]?.label||t}`);
+}
+function duplicateSlide(){
+  saveHistory();
+  const copy=JSON.parse(JSON.stringify(slides[currentSlideIndex]));
+  slides.splice(currentSlideIndex+1,0,copy);
+  ['img1','img2'].forEach(f=>{
+    const ok=imgKey(currentSlideIndex,f);
+    if(imgStore[ok])imgStore[imgKey(currentSlideIndex+1,f)]={...imgStore[ok]};
+  });
+  currentSlideIndex++;refreshAll();showToast('Duplicated');
+}
+function deleteSlide(){
+  if(slides.length<=1){showToast('Need at least one!',true);return}
+  saveHistory();slides.splice(currentSlideIndex,1);
+  if(currentSlideIndex>=slides.length)currentSlideIndex=slides.length-1;
+  syncFormatToSlide();refreshAll();showToast('Removed');
+}
+
+// ════════════════════════════════════════
+//  THEME & ACCENT
+// ════════════════════════════════════════
+function setTemplate(tpl,btn){
+  saveHistory();currentTemplate=tpl;
+  document.querySelectorAll('#img-panel .chip').forEach(c=>c.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  currentAccent=TEMPLATE_ACCENTS[tpl]||'#c9a84c';
+  document.querySelectorAll('#img-panel .swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===currentAccent));
+  document.getElementById('custom-color-picker').value=currentAccent;
+  updatePost();
+}
+function setAccent(swatch){
+  saveHistory();currentAccent=swatch.dataset.color;
+  document.querySelectorAll('#img-panel .swatch').forEach(s=>s.classList.remove('active'));
+  swatch.classList.add('active');
+  document.getElementById('custom-color-picker').value=currentAccent;
+  updatePost();
+}
+function setCustomAccent(color){
+  currentAccent=color;
+  document.querySelectorAll('#img-panel .swatch').forEach(s=>s.classList.remove('active'));
+  updatePost();clearTimeout(setCustomAccent._timer);
+  setCustomAccent._timer=setTimeout(saveHistory,600);
+}
+function toggleAppTheme(){
+  const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  document.getElementById('theme-btn').textContent=next==='dark'?'☀':'☾';
+}
+
+// ════════════════════════════════════════
+//  EXPORT (IMAGE)
+// ════════════════════════════════════════
+function showLoading(t){document.getElementById('loading').classList.add('active');document.getElementById('loading-text').textContent=t||'Preparing...'}
+function hideLoading(){document.getElementById('loading').classList.remove('active')}
+function showToast(msg,isErr){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.className='toast'+(isErr?' error':'')+' show';
+  clearTimeout(showToast._timer);showToast._timer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+async function renderToCanvas(slideIdx){
+  const d=slides[slideIdx];
+  const fmt=d.format||'story';
+  const dims=FORMAT_DIMS[fmt]||FORMAT_DIMS.story;
+  const aspect=dims.w/dims.h;
+  const RW=540,RH=Math.round(RW/aspect);
+  const container=document.createElement('div');
+  container.style.cssText=`position:fixed;left:-9999px;top:0;width:${RW}px;height:${RH}px;overflow:hidden;border-radius:0;font-family:'Syne',sans-serif;background:${BG_MAP[currentTemplate]||'#0a0a0a'};color:${LIGHT_TEMPLATES.includes(currentTemplate)?'#1a1510':'#f0ebe0'};--gold:${currentAccent};--surface:${getComputedStyle(document.documentElement).getPropertyValue('--surface').trim()};--surface2:${getComputedStyle(document.documentElement).getPropertyValue('--surface2').trim()};--border:rgba(201,168,76,.15);--border2:rgba(255,255,255,.07);--bg:${BG_MAP[currentTemplate]||'#0a0a0a'};`;
+  container.innerHTML=renderSlideHTML(d,slideIdx);
+  document.body.appendChild(container);
+  await new Promise(r=>setTimeout(r,250));
+  const canvas=await html2canvas(container,{scale:Math.round(dims.w/RW),useCORS:true,allowTaint:true,backgroundColor:BG_MAP[currentTemplate]||'#0a0a0a',width:RW,height:RH,logging:false});
+  document.body.removeChild(container);
+  return canvas;
+}
+async function downloadCurrentSlide(){
+  if(appMode==='video'){exportVideoFrame();return}
+  showLoading('Rendering...');
+  try{
+    const canvas=await renderToCanvas(currentSlideIndex);
+    const d=slides[currentSlideIndex];
+    const fmt=d.format||'story';
+    const dims=FORMAT_DIMS[fmt];
+    const link=document.createElement('a');
+    link.download=`apex-${fmt}-${currentSlideIndex+1}-${d.type}.png`;
+    link.href=canvas.toDataURL('image/png');link.click();
+    showToast(`✓ Exported ${dims.w}×${dims.h}px!`);
+  }catch(e){showToast('Export failed: '+e.message,true)}
+  hideLoading();
+}
+async function downloadAllSlides(){
+  if(typeof JSZip==='undefined'){showToast('ZIP loading, retry...',true);return}
+  showLoading(`Preparing ${slides.length} cards...`);
+  const zip=new JSZip();const folder=zip.folder('apex-posts');
+  try{
+    for(let i=0;i<slides.length;i++){
+      document.getElementById('loading-text').textContent=`Rendering ${i+1} / ${slides.length}...`;
+      const canvas=await renderToCanvas(i);
+      const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+      const d=slides[i];
+      folder.file(`${d.format||'story'}-${i+1}-${d.type}.png`,blob);
+      await new Promise(r=>setTimeout(r,80));
+    }
+    document.getElementById('loading-text').textContent='Creating ZIP...';
+    const content=await zip.generateAsync({type:'blob'});
+    const link=document.createElement('a');
+    link.href=URL.createObjectURL(content);link.download=`apex-posts-${slides.length}.zip`;link.click();
+    showToast(`✓ ${slides.length} cards in ZIP!`);
+  }catch(e){showToast('Export failed: '+e.message,true)}
+  hideLoading();
+}
+
+// ════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement.tagName.toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select')return;
+  if(e.key==='ArrowLeft'){e.preventDefault();prevSlide()}
+  else if(e.key==='ArrowRight'){e.preventDefault();nextSlide()}
+  else if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undoAction()}
+  else if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoAction()}
+  else if((e.ctrlKey||e.metaKey)&&e.key==='d'){e.preventDefault();duplicateSlide()}
+  else if(e.key===' '&&appMode==='video'){e.preventDefault();toggleVideoPlay()}
+});
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+populateCardTypeSelect();
+refreshAll();
+saveHistory();
+updateHistoryButtons();
+updateVidOverlay();
+</script>
+</body>
+</html>
